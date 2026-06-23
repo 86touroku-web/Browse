@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ルアー在庫回覧</title>
+<style>
+/* ═══════════════════════════════════════════
+   ★ GAS_URL を自分のデプロイURLに書き換えること
+   ═══════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#d8dedd;display:flex;justify-content:center;padding:16px;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;}
+#wrap{position:relative;width:360px;}
+#app{width:360px;background:#f0f4f3;border-radius:14px;overflow:hidden;border:1px solid #aaa;display:flex;flex-direction:column;height:92vh;max-height:780px;box-shadow:0 4px 20px rgba(0,0,0,.18);}
+
+/* ヘッダー */
+#hdr{background:#1a5f4a;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;}
+#hdr-t{color:#fff;font-size:14px;font-weight:700;}
+#hdr-sub{position:absolute;left:50%;transform:translateX(-50%);color:#fff;font-size:15px;font-weight:700;white-space:nowrap;}
+#hdr-c{color:#a0d4c4;font-size:12px;font-weight:600;}
+
+/* ローディング */
+#loading{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
+#loading p{font-size:13px;color:#444;font-weight:600;}
+.spinner{width:36px;height:36px;border:4px solid #cde;border-top-color:#1a5f4a;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* リスト */
+#list{flex:1;overflow-y:auto;padding:6px 6px 4px;display:none;}
+
+/* グループ見出し */
+.gh{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;margin:6px 0 3px;background:#fbf585;border-radius:9px;border:1.5px solid #1a5f4a;}
+.gn{font-size:12px;font-weight:700;color:#1a5f4a;}
+.gr{display:flex;align-items:center;gap:6px;}
+.pu{font-size:9px;padding:2px 7px;border-radius:9px;background:#e8f5e9;color:#1a5f4a;border:0.5px solid #1a5f4a;font-weight:700;white-space:nowrap;}
+.pd{font-size:9px;padding:2px 7px;border-radius:9px;background:#fdecea;color:#b00000;border:0.5px solid #b00000;font-weight:700;white-space:nowrap;}
+.gc{font-size:11px;color:#444;font-weight:600;}
+
+/* カード */
+.card{background:#fff;border-radius:9px;border:2px solid #1d24ed;margin-bottom:5px;overflow:hidden;}
+.card-top{background:#e0f2fc;padding:8px 9px 7px;}
+.r1{display:flex;align-items:center;gap:6px;}
+.bc{font-size:12px;color:#111;font-weight:700;}
+.st{font-size:11px;padding:3px 0;border-radius:8px;font-weight:700;color:#fff;min-width:52px;text-align:center;margin:0 4px;}
+.s0{background:#d07000;}.s1{background:#1a7a30;}.s2{background:#bb0000;}.s3{background:#0055bb;}.s4{background:#6600aa;}
+.cno{font-size:11px;color:#111;font-weight:600;}
+.seq{font-size:10px;color:#333;font-weight:600;margin-left:auto;white-space:nowrap;}
+.fb{width:32px;height:32px;border-radius:8px;border:2px solid #ec1c24;background:#fff;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ec1c24;}
+.fb.on{background:#fff;border-color:#ec1c24;color:#ec1c24;}
+
+/* カード下段 */
+.card-bot{background:#f0f7fd;padding:7px 9px 8px;display:flex;gap:7px;}
+.cimg{border-radius:5px;border:1px solid #585858;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#888;font-size:9px;font-weight:600;width:58px;min-height:70px;align-self:stretch;object-fit:cover;}
+.ci{flex:1;font-size:11px;line-height:1.75;color:#111;}
+.ci-row{display:flex;gap:0;}
+.lb{color:#111;font-weight:700;text-align:right;min-width:46px;margin-right:5px;flex-shrink:0;}
+.cv{color:#111;font-weight:500;}
+.cn{color:#1a5f4a;font-weight:800;font-size:11px;}
+.nt{color:#444;font-size:10px;font-weight:500;}
+
+/* ボトム */
+#bot{background:#fff;border-top:1px solid #ccc;padding:5px 6px 7px;flex-shrink:0;display:none;}
+#chips{display:flex;gap:4px;flex-wrap:wrap;padding:3px 0 6px;}
+.ch{font-size:11px;padding:4px 10px;border-radius:13px;border:1px solid #888;color:#111;background:#f0f0f0;cursor:pointer;user-select:none;font-weight:600;}
+.ch.on{border-color:#1a5f4a;color:#fff;background:#1a5f4a;font-weight:700;}
+#btns{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
+.bn{font-size:11px;padding:7px 2px;border-radius:7px;border:1px solid #888;background:#f0f0f0;color:#111;cursor:pointer;text-align:center;font-family:inherit;font-weight:600;}
+.bn.pr{background:#1a5f4a;color:#fff;border-color:#1a5f4a;font-weight:700;}
+
+/* オーバーレイ・パネル */
+#ov{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:9;display:none;border-radius:14px;}
+#ov.op{display:block;}
+#pn{position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:14px 14px 0 0;transform:translateY(100%);transition:transform .27s cubic-bezier(.32,.72,0,1);z-index:10;max-height:80%;display:flex;flex-direction:column;}
+#pn.op{transform:translateY(0);}
+.ph{display:flex;justify-content:space-between;align-items:center;padding:11px 14px 9px;border-bottom:1px solid #ccc;flex-shrink:0;}
+.pt{font-size:14px;font-weight:700;color:#111;}
+.pc{font-size:12px;color:#555;cursor:pointer;border:none;background:none;font-family:inherit;font-weight:600;}
+.pl{overflow-y:auto;padding:6px 9px;flex:1;}
+.sec-label{font-size:11px;color:#555;font-weight:700;padding:6px 2px 3px;border-bottom:1px solid #ddd;margin-bottom:4px;}
+.pr2{display:flex;justify-content:space-between;align-items:center;padding:10px 11px;border-radius:8px;margin-bottom:3px;cursor:pointer;background:#f0f2f1;}
+.pr2.sl{background:#e0f2fc;border:1.5px solid #1d24ed;}
+.pr2 .pln{font-size:12px;color:#111;font-weight:600;}
+.pr2.sl .pln{color:#0010cc;font-weight:800;}
+.pr2 .plc{font-size:11px;color:#555;font-weight:600;}
+.pr2.sl .plc{color:#0010cc;font-weight:700;}
+#type-section{display:none;margin-top:8px;}
+#type-section.show{display:block;}
+.pf{padding:8px 9px 10px;border-top:1px solid #ccc;flex-shrink:0;}
+.pok{width:100%;padding:12px;border-radius:9px;background:#1a5f4a;color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+
+/* お気に入りポップアップ */
+#fp{position:absolute;inset:12px 9px 90px;background:#fff;border-radius:11px;border:1px solid #aaa;z-index:20;display:none;flex-direction:column;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.2);}
+#fp.op{display:flex;}
+.fh{display:flex;justify-content:space-between;align-items:center;padding:10px 13px;border-bottom:1px solid #ccc;}
+.fh span{font-size:14px;font-weight:700;color:#111;}
+.fx{font-size:22px;cursor:pointer;border:none;background:none;color:#555;padding:0;line-height:1;font-weight:700;}
+.fl2{flex:1;overflow-y:auto;padding:8px 9px;}
+.fr{padding:9px 10px;border-radius:8px;background:#f0f2f1;margin-bottom:4px;border:1px solid #ccc;}
+.fr-top{font-size:12px;font-weight:800;color:#111;margin-bottom:3px;}
+.fr-bot{font-size:12px;color:#111;font-weight:600;}
+.fe{padding:22px;text-align:center;font-size:13px;color:#555;font-weight:600;}
+</style>
+</head>
+<body>
+<div id="wrap">
+<div id="app">
+  <div id="hdr">
+    <span id="hdr-t">🎣</span>
+    <span id="hdr-sub">ルアー在庫回覧</span>
+    <span id="hdr-c">読込中…</span>
+  </div>
+
+  <!-- ローディング画面 -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <p id="load-msg">在庫データを読み込み中…</p>
+  </div>
+
+  <!-- カードリスト（ロード後に表示） -->
+  <div id="list"></div>
+
+  <!-- ボトムコントロール（ロード後に表示） -->
+  <div id="bot">
+    <div id="chips">
+      <span class="ch" data-p="maker">メーカー</span>
+      <span class="ch" data-p="category">カテゴリー</span>
+      <span class="ch" data-p="date">購入日</span>
+      <span class="ch" data-p="status">ステータス</span>
+      <span class="ch" data-p="set">セット</span>
+    </div>
+    <div id="btns">
+      <button class="bn pr" onclick="openP('maker')">🔍 絞り込み</button>
+      <button class="bn" onclick="clrAll()">✕ クリア</button>
+      <button class="bn" onclick="stTop()">↑ 先頭へ</button>
+      <button class="bn" onclick="openFav()">♡ お気に入り</button>
+    </div>
+  </div>
+</div>
+
+<div id="ov" onclick="closeP()"></div>
+<div id="pn">
+  <div class="ph">
+    <span class="pt" id="pt"></span>
+    <button class="pc" onclick="closeP()">✕ 閉じる</button>
+  </div>
+  <div class="pl" id="pc"></div>
+  <div class="pf"><button class="pok" id="pok">表示</button></div>
+</div>
+
+<div id="fp">
+  <div class="fh"><span>♡ お気に入り</span><button class="fx" onclick="closeFav()">×</button></div>
+  <div class="fl2" id="fl"></div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  ★ここを自分のGASデプロイURLに書き換える
+// ═══════════════════════════════════════════════════════
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzvAowp-vFmPTpYxIYpcisSpJrxQXAWb7tDWQxTbt8qDKsRw7tWhm1SCTyv87NgxuJGqA/exec';
+
+// ─────────────────────────────────────────────────────
+//  状態変数
+// ─────────────────────────────────────────────────────
+let ALL_ITEMS   = [];   // 全商品データ（起動時1回だけ取得）
+let CAT_TYPE    = {};   // カテゴリー→タイプマップ
+let MAKERS      = [];   // メーカー一覧
+let F = {maker:null, category:null, type:null, date:null, status:null, set:false};
+let favs        = new Set();
+let curP        = null;
+let selCat      = null;
+let selType     = null;
+let selP        = null;
+
+// ─────────────────────────────────────────────────────
+//  お気に入りをlocalStorageに保存・復元
+// ─────────────────────────────────────────────────────
+function loadFavs(){
+  try {
+    const saved = localStorage.getItem('lure_favs');
+    if (saved) favs = new Set(JSON.parse(saved));
+  } catch(e){}
+}
+function saveFavs(){
+  try { localStorage.setItem('lure_favs', JSON.stringify([...favs])); } catch(e){}
+}
+
+// ─────────────────────────────────────────────────────
+//  JSONP通信（既存アプリと同じ方式）
+// ─────────────────────────────────────────────────────
+function gasCall(fn, payload, cb) {
+  const cbName = 'cb_' + Date.now();
+  const script = document.createElement('script');
+  window[cbName] = function(data) {
+    delete window[cbName];
+    document.body.removeChild(script);
+    cb(data);
+  };
+  const params = new URLSearchParams({
+    fn       : fn,
+    callback : cbName,
+    payload  : JSON.stringify(payload || {}),
+  });
+  script.src = GAS_URL + '?' + params.toString();
+  script.onerror = function() {
+    delete window[cbName];
+    document.body.removeChild(script);
+    cb({ ok: false, error: '通信エラー' });
+  };
+  document.body.appendChild(script);
+}
+
+// ─────────────────────────────────────────────────────
+//  起動時：全データ1回ダウンロード
+// ─────────────────────────────────────────────────────
+function init() {
+  loadFavs();
+  setMsg('商品データを読み込み中…');
+  gasCall('getAllProducts', {}, function(res) {
+    if (!res.ok) {
+      setMsg('❌ データ取得に失敗しました: ' + (res.error || ''));
+      return;
+    }
+    ALL_ITEMS = res.items || [];
+    setMsg('マスタを読み込み中…');
+    gasCall('getMastersBrowse', {}, function(res2) {
+      if (res2.ok) {
+        MAKERS = res2.makers || [];
+        // CAT_TYPEマップを構築
+        (res2.categories || []).forEach(c => {
+          CAT_TYPE[c.name] = c.types.map(t => ({name:t.name, cnt:t.cnt}));
+        });
+      }
+      // ローディング非表示、UI表示
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('list').style.display    = 'block';
+      document.getElementById('bot').style.display     = 'block';
+      // チップのイベント登録
+      document.querySelectorAll('.ch').forEach(c => {
+        c.addEventListener('click', () => openP(c.dataset.p));
+      });
+      render();
+    });
+  });
+}
+
+function setMsg(msg) {
+  document.getElementById('load-msg').textContent = msg;
+}
+
+// ─────────────────────────────────────────────────────
+//  フィルタリング
+// ─────────────────────────────────────────────────────
+const SC = {'在庫':'s0','No有':'s1','出品':'s2','検品済':'s3','出タイ待':'s4','保品':'s3'};
+
+function gf() {
+  return ALL_ITEMS.filter(p => {
+    if (F.maker    && p.maker  !== F.maker)    return false;
+    if (F.category && p.cat    !== F.category) return false;
+    if (F.type     && p.type   !== F.type)     return false;
+    if (F.status   && p.status !== F.status)   return false;
+    if (F.set      && !p.isSet)                return false;
+    // 購入日フィルタ（elapsedMonths = 購入からの経過月数）
+    if (F.date) {
+      const m = p.elapsedMonths;
+      if (m === null) return false;
+      if (F.date === '2年以上前'   && m < 24) return false;
+      if (F.date === '1年以上前'   && m < 12) return false;
+      if (F.date === '6ヶ月以上前' && m < 6)  return false;
+      if (F.date === '3ヶ月以上前' && m < 3)  return false;
+    }
+    return true;
+  });
+}
+
+// ─────────────────────────────────────────────────────
+//  利益率バッジ
+// ─────────────────────────────────────────────────────
+function pbadge(p) {
+  if (p.profitName === null || p.profitType === null) return '';
+  const d  = p.profitName - p.profitType;
+  const up = d >= 0;
+  const ar = up ? '↑' : '↓';
+  const cl = up ? 'pu' : 'pd';
+  return `<span class="${cl}">${p.profitName.toFixed(1)}%${ar} vs タイプ平均${p.profitType.toFixed(1)}%</span>`;
+}
+
+// ─────────────────────────────────────────────────────
+//  ヘッダー更新
+// ─────────────────────────────────────────────────────
+function updHeader() {
+  const sub = document.getElementById('hdr-sub');
+  if      (F.type)     sub.textContent = F.type;
+  else if (F.category) sub.textContent = F.category;
+  else                 sub.textContent = 'ルアー在庫回覧';
+}
+
+// ─────────────────────────────────────────────────────
+//  カードレンダリング
+// ─────────────────────────────────────────────────────
+function render() {
+  const list = gf();
+  document.getElementById('hdr-c').textContent = list.length + '件表示中';
+  updHeader();
+  const el = document.getElementById('list');
+  if (!list.length) {
+    el.innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:#444;font-weight:600;">該当商品がありません</div>';
+    return;
+  }
+  // メーカー→商品名グループでソート
+  list.sort((a, b) => {
+    if (a.maker !== b.maker) return a.maker.localeCompare(b.maker, 'ja');
+    return a.name.localeCompare(b.name, 'ja');
+  });
+  const grps = {};
+  list.forEach(p => {
+    if (!grps[p.name]) grps[p.name] = [];
+    grps[p.name].push(p);
+  });
+  let h = '', sq = 0;
+  Object.entries(grps).forEach(([nm, its]) => {
+    const s = its[0];
+    const badge = pbadge(s);
+    h += `<div class="gh">
+      <span class="gn">${esc(nm)}</span>
+      <div class="gr">${badge}<span class="gc">${its.length}件</span></div>
+    </div>`;
+    its.forEach(p => {
+      sq++;
+      const fv  = favs.has(p.bc);
+      const img = p.imgUrl
+        ? `<img class="cimg" src="${esc(p.imgUrl)}" loading="lazy" alt="商品画像" style="min-height:70px;">`
+        : `<div class="cimg">画像なし</div>`;
+      h += `<div class="card">
+        <div class="card-top">
+          <div class="r1">
+            <span class="bc">BC ${esc(p.bc)}</span>
+            <span class="st ${SC[p.status]||'s3'}">${esc(p.status)}</span>
+            <span class="cno">商品NO ${esc(String(p.no))}</span>
+            <span class="seq">${sq}/${list.length}</span>
+            <button class="fb ${fv?'on':''}" onclick="tgFav('${p.bc}')">${fv?'♥':'♡'}</button>
+          </div>
+        </div>
+        <div class="card-bot">
+          ${img}
+          <div class="ci">
+            <div class="ci-row"><span class="lb">保管BC</span><span class="cv">${esc(p.storBC)}</span></div>
+            <div class="ci-row"><span class="lb">商品</span><span class="cn">${esc(nm)}</span></div>
+            ${p.note ? `<div class="ci-row"><span class="lb">備考</span><span class="nt">${esc(p.note)}</span></div>` : ''}
+            <div class="ci-row"><span class="lb">状態</span><span class="cv"><b>${esc(p.cond)}</b>&nbsp;&nbsp;購入金額 ¥${Number(p.buyPrice||0).toLocaleString()}&nbsp;&nbsp;購入日 ${esc(p.buyDate)}</span></div>
+          </div>
+        </div>
+      </div>`;
+    });
+  });
+  el.innerHTML = h;
+}
+
+// XSS対策
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─────────────────────────────────────────────────────
+//  お気に入り
+// ─────────────────────────────────────────────────────
+function tgFav(bc) {
+  favs.has(bc) ? favs.delete(bc) : favs.add(bc);
+  saveFavs();
+  render();
+}
+
+// ─────────────────────────────────────────────────────
+//  チップ状態更新
+// ─────────────────────────────────────────────────────
+function updChips() {
+  document.querySelectorAll('.ch').forEach(c => {
+    const p = c.dataset.p;
+    let active = false;
+    if      (p === 'category') active = !!(F.category || F.type);
+    else if (p === 'set')      active = F.set;
+    else                       active = !!F[p];
+    c.classList.toggle('on', active);
+  });
+}
+
+// ─────────────────────────────────────────────────────
+//  件数カウント（パネル用）
+// ─────────────────────────────────────────────────────
+function cntFor(pn, v) {
+  if (!v || v.startsWith('全')) return ALL_ITEMS.length;
+  const t = {...F, [pn]: v};
+  return ALL_ITEMS.filter(p => {
+    if (t.maker    && p.maker  !== t.maker)    return false;
+    if (t.category && p.cat    !== t.category) return false;
+    if (t.type     && p.type   !== t.type)     return false;
+    if (t.status   && p.status !== t.status)   return false;
+    return true;
+  }).length;
+}
+
+// ─────────────────────────────────────────────────────
+//  カテゴリーパネル構築
+// ─────────────────────────────────────────────────────
+function buildCategoryPanel(init) {
+  if (init) { selCat = F.category; selType = F.type; }
+  document.getElementById('pt').textContent = 'カテゴリー・タイプ';
+  const cats = Object.keys(CAT_TYPE);
+  let h = '<div class="sec-label">カテゴリーを選択</div>';
+  const curAll = !selCat;
+  const allCnt = ALL_ITEMS.filter(p => p.status !== '販売済').length;
+  h += `<div class="pr2 ${curAll?'sl':''}" onclick="selCatItem('__ALL__')"><span class="pln">全カテゴリー</span><span class="plc">(${allCnt})</span></div>`;
+  cats.forEach(cat => {
+    const cur = selCat === cat;
+    const cnt = ALL_ITEMS.filter(p => p.cat === cat).length;
+    h += `<div class="pr2 ${cur?'sl':''}" onclick="selCatItem('${cat}')"><span class="pln">${esc(cat)}</span><span class="plc">(${cnt})</span></div>`;
+  });
+  // タイプセクション（カテゴリー選択後に展開）
+  const types  = selCat ? (CAT_TYPE[selCat] || []) : [];
+  const showTs = selCat && types.length > 0;
+  h += `<div id="type-section" class="${showTs?'show':''}">`;
+  if (showTs) {
+    const catCnt = ALL_ITEMS.filter(p => p.cat === selCat).length;
+    h += `<div class="sec-label" style="margin-top:6px;">▼ ${esc(selCat)} のタイプ</div>`;
+    h += `<div class="pr2 ${!selType?'sl':''}" onclick="selTypeItem('__ALL__')"><span class="pln">全${esc(selCat)}</span><span class="plc">(${catCnt})</span></div>`;
+    types.forEach(t => {
+      const cur = selType === t.name;
+      h += `<div class="pr2 ${cur?'sl':''}" onclick="selTypeItem('${esc(t.name)}')"><span class="pln">${esc(t.name)}</span><span class="plc">(${t.cnt})</span></div>`;
+    });
+  }
+  h += '</div>';
+  document.getElementById('pc').innerHTML = h;
+  updPanelBtn();
+}
+
+function selCatItem(cat) {
+  selCat  = (cat === '__ALL__') ? null : cat;
+  selType = null;
+  buildCategoryPanel(false);
+}
+
+function selTypeItem(tp) {
+  selType = (tp === '__ALL__') ? null : tp;
+  document.querySelectorAll('#type-section .pr2').forEach(r => {
+    const nm = r.querySelector('.pln').textContent;
+    r.classList.toggle('sl',
+      nm.startsWith('全') ? !selType : selType === nm
+    );
+  });
+  updPanelBtn();
+}
+
+function updPanelBtn() {
+  const tmp = {...F, category: selCat, type: selType};
+  const cnt = ALL_ITEMS.filter(p => {
+    if (tmp.maker    && p.maker  !== tmp.maker)    return false;
+    if (tmp.category && p.cat    !== tmp.category) return false;
+    if (tmp.type     && p.type   !== tmp.type)     return false;
+    if (tmp.status   && p.status !== tmp.status)   return false;
+    return true;
+  }).length;
+  document.getElementById('pok').textContent = `${cnt}件を表示`;
+}
+
+// ─────────────────────────────────────────────────────
+//  パネル開閉
+// ─────────────────────────────────────────────────────
+function openP(n) {
+  curP = n;
+  selP = F[n];
+  if (n === 'set') { F.set = !F.set; updChips(); render(); return; }
+  if (n === 'category') {
+    buildCategoryPanel(true);
+    document.getElementById('pn').classList.add('op');
+    document.getElementById('ov').classList.add('op');
+    return;
+  }
+  // メーカー・購入日・ステータス
+  const titles = { maker:'メーカー', date:'購入日', status:'ステータス' };
+  document.getElementById('pt').textContent = titles[n] || n;
+  let items = [];
+  if (n === 'maker') {
+    items = [{ name:'全メーカー', cnt:null }].concat(MAKERS.map(m => ({ name: m.name, cnt: m.cnt })));
+  } else if (n === 'date') {
+    items = ['2年以上前','1年以上前','6ヶ月以上前','3ヶ月以上前'].map(v => ({ name:v, cnt:null }));
+  } else if (n === 'status') {
+    items = ['在庫','検品済','保品','No有','出タイ待','出品'].map(v => ({
+      name : v,
+      cnt  : ALL_ITEMS.filter(p => p.status === v).length,
+    }));
+  }
+  let h = '';
+  items.forEach(it => {
+    const isAll = it.name.startsWith('全');
+    const cur   = isAll ? !F[n] : F[n] === it.name;
+    const cntTxt = it.cnt !== null ? `(${it.cnt})` : '';
+    h += `<div class="pr2 ${cur?'sl':''}" onclick="selIn('${it.name}')"><span class="pln">${esc(it.name)}</span><span class="plc">${cntTxt}</span></div>`;
+  });
+  document.getElementById('pc').innerHTML = h;
+  document.getElementById('pok').textContent = `${gf().length}件を表示`;
+  document.getElementById('pn').classList.add('op');
+  document.getElementById('ov').classList.add('op');
+}
+
+function selIn(v) {
+  selP = v.startsWith('全') ? null : v;
+  const tmp = {...F, [curP]: selP};
+  const cnt = ALL_ITEMS.filter(p => {
+    if (tmp.maker  && p.maker  !== tmp.maker)  return false;
+    if (tmp.status && p.status !== tmp.status) return false;
+    return true;
+  }).length;
+  document.getElementById('pok').textContent = `${cnt}件を表示`;
+  document.querySelectorAll('.pr2').forEach(r => {
+    const nm = r.querySelector('.pln').textContent;
+    r.classList.toggle('sl', nm.startsWith('全') ? !selP : selP === nm);
+  });
+}
+
+document.getElementById('pok').addEventListener('click', () => {
+  if (curP === 'category') {
+    F.category = selCat;
+    F.type     = selType;
+  } else {
+    F[curP] = selP;
+  }
+  closeP(); updChips(); render();
+});
+
+function closeP() {
+  document.getElementById('pn').classList.remove('op');
+  document.getElementById('ov').classList.remove('op');
+}
+function clrAll() {
+  F = {maker:null,category:null,type:null,date:null,status:null,set:false};
+  updChips(); render();
+}
+function stTop() { document.getElementById('list').scrollTop = 0; }
+
+function openFav() {
+  const fl = document.getElementById('fl');
+  if (!favs.size) {
+    fl.innerHTML = '<div class="fe">お気に入りはありません</div>';
+  } else {
+    let h = '';
+    favs.forEach(bc => {
+      const p = ALL_ITEMS.find(x => x.bc === bc);
+      if (p) h += `<div class="fr">
+        <div class="fr-top">BC ${esc(p.bc)}　No. ${esc(String(p.no))}</div>
+        <div class="fr-bot">${esc(p.name)}</div>
+      </div>`;
+    });
+    fl.innerHTML = h || '<div class="fe">データが見つかりません</div>';
+  }
+  document.getElementById('fp').classList.add('op');
+}
+function closeFav() { document.getElementById('fp').classList.remove('op'); }
+
+// ─────────────────────────────────────────────────────
+//  起動
+// ─────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
