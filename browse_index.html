@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no">
 <title>ルアー在庫回覧</title>
 <style>
 /* ═══════════════════════════════════════════
@@ -61,8 +61,12 @@ body{background:#d8dedd;display:flex;justify-content:center;padding:16px;font-fa
 /* ボトム */
 #bot{background:#fff;border-top:1px solid #ccc;padding:5px 6px 7px;flex-shrink:0;display:none;}
 #chips{display:flex;gap:4px;flex-wrap:wrap;padding:3px 0 6px;}
-.ch{font-size:11px;padding:4px 10px;border-radius:13px;border:1px solid #888;color:#111;background:#f0f0f0;cursor:pointer;user-select:none;font-weight:600;}
+.ch{font-size:11px;padding:4px 10px;border-radius:13px;border:1px solid #888;color:#111;background:#f0f0f0;cursor:pointer;user-select:none;font-weight:600;display:inline-flex;align-items:center;gap:5px;}
 .ch.on{border-color:#1a5f4a;color:#fff;background:#1a5f4a;font-weight:700;}
+.chx{font-size:11px;font-weight:900;line-height:1;padding:0 1px;}
+
+/* 絞り込み未選択時の案内 */
+.emptyhint{padding:40px 20px;text-align:center;font-size:13px;color:#555;font-weight:600;line-height:1.8;}
 #btns{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
 .bn{font-size:11px;padding:7px 2px;border-radius:7px;border:1px solid #888;background:#f0f0f0;color:#111;cursor:pointer;text-align:center;font-family:inherit;font-weight:600;}
 .bn.pr{background:#1a5f4a;color:#fff;border-color:#1a5f4a;font-weight:700;}
@@ -165,12 +169,28 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbzvAowp-vFmPTpYxIYpcisS
 let ALL_ITEMS   = [];   // 全商品データ（起動時1回だけ取得）
 let CAT_TYPE    = {};   // カテゴリー→タイプマップ
 let MAKERS      = [];   // メーカー一覧
-let F = {maker:null, category:null, type:null, date:null, status:null, set:false};
+// F: maker/status/date は複数選択(Set)。category/typeは単一選択(階層のため)。setは真偽値。
+let F = {maker:new Set(), category:null, type:null, date:new Set(), status:new Set(), set:false};
 let favs        = new Set();
 let curP        = null;
 let selCat      = null;
 let selType     = null;
-let selP        = null;
+let selP        = null;   // 複数選択パネル編集中の一時Set
+let curItems    = [];     // 複数選択パネル表示中のリスト（再描画用）
+
+// ─────────────────────────────────────────────────────
+//  購入日の「区間」判定
+//  3ヶ月 ⊂ 6ヶ月 ⊂ 1年 ⊂ 1年6ヶ月 ⊂ 2年（各区間は排他的なバンド）
+// ─────────────────────────────────────────────────────
+function bandForMonths(m) {
+  if (m === null || m === undefined || m < 3)  return null;
+  if (m < 6)  return '3ヶ月';
+  if (m < 12) return '6ヶ月';
+  if (m < 18) return '1年';
+  if (m < 24) return '1年6ヶ月';
+  return '2年';
+}
+const DATE_BANDS = ['3ヶ月','6ヶ月','1年','1年6ヶ月','2年'];
 
 // ─────────────────────────────────────────────────────
 //  お気に入りをlocalStorageに保存・復元
@@ -222,6 +242,8 @@ function init() {
       return;
     }
     ALL_ITEMS = res.items || [];
+    // 購入日の区間（バンド）を商品ごとに事前計算
+    ALL_ITEMS.forEach(p => { p.band = bandForMonths(p.elapsedMonths); });
     setMsg('マスタを読み込み中…');
     gasCall('getMastersBrowse', {}, function(res2) {
       if (res2.ok) {
@@ -234,11 +256,13 @@ function init() {
       // ローディング非表示、UI表示
       document.getElementById('loading').style.display = 'none';
       document.getElementById('list').style.display    = 'block';
-      document.getElementById('bot').style.display     = 'block';
+      document.getElementById('bot').style.display      = 'block';
       // チップのイベント登録
       document.querySelectorAll('.ch').forEach(c => {
         c.addEventListener('click', () => openP(c.dataset.p));
       });
+      // 起動時は絞り込み未選択＝商品を表示しない（render内で案内表示になる）
+      updChips();
       render();
     });
   });
@@ -253,24 +277,39 @@ function setMsg(msg) {
 // ─────────────────────────────────────────────────────
 const SC = {'在庫':'s0','No有':'s1','出品':'s2','検品済':'s3','出タイ待':'s4','保品':'s3'};
 
+// ─────────────────────────────────────────────────────
+//  フィルタリング（共通判定関数）
+//  ov: 一時的に上書きしたい項目があれば渡す（パネルでの件数プレビュー用）
+//  maker/status/date は Set。空Set＝フィルター無し。
+// ─────────────────────────────────────────────────────
+function passesFilters(p, ov) {
+  ov = ov || {};
+  const maker    = ov.maker    !== undefined ? ov.maker    : F.maker;
+  const category = ov.category !== undefined ? ov.category : F.category;
+  const type     = ov.type     !== undefined ? ov.type     : F.type;
+  const status   = ov.status   !== undefined ? ov.status   : F.status;
+  const date     = ov.date     !== undefined ? ov.date     : F.date;
+  const set      = ov.set      !== undefined ? ov.set      : F.set;
+
+  if (maker.size    && !maker.has(p.maker))    return false;
+  if (category       && p.cat  !== category)   return false;
+  if (type            && p.type !== type)       return false;
+  if (status.size    && !status.has(p.status)) return false;
+  if (set             && !p.isSet)              return false;
+  if (date.size) {
+    if (!p.band || !date.has(p.band)) return false;
+  }
+  return true;
+}
+
+// 何かひとつでも絞り込み条件が選ばれているか
+function anyFilterActive() {
+  return F.maker.size > 0 || !!F.category || !!F.type ||
+         F.status.size > 0 || F.date.size > 0 || F.set;
+}
+
 function gf() {
-  return ALL_ITEMS.filter(p => {
-    if (F.maker    && p.maker  !== F.maker)    return false;
-    if (F.category && p.cat    !== F.category) return false;
-    if (F.type     && p.type   !== F.type)     return false;
-    if (F.status   && p.status !== F.status)   return false;
-    if (F.set      && !p.isSet)                return false;
-    // 購入日フィルタ（elapsedMonths = 購入からの経過月数）
-    if (F.date) {
-      const m = p.elapsedMonths;
-      if (m === null) return false;
-      if (F.date === '2年以上前'   && m < 24) return false;
-      if (F.date === '1年以上前'   && m < 12) return false;
-      if (F.date === '6ヶ月以上前' && m < 6)  return false;
-      if (F.date === '3ヶ月以上前' && m < 3)  return false;
-    }
-    return true;
-  });
+  return ALL_ITEMS.filter(p => passesFilters(p, {}));
 }
 
 // ─────────────────────────────────────────────────────
@@ -299,10 +338,19 @@ function updHeader() {
 //  カードレンダリング
 // ─────────────────────────────────────────────────────
 function render() {
+  const el = document.getElementById('list');
+
+  // 絞り込み条件が何も選ばれていない場合は商品を一切表示しない
+  if (!anyFilterActive()) {
+    document.getElementById('hdr-c').textContent = '';
+    document.getElementById('hdr-sub').textContent = 'ルアー在庫回覧';
+    el.innerHTML = '<div class="emptyhint">🔍 下の「絞り込み」から条件を選んでください<br>（メーカー・カテゴリー・購入日・ステータス・セット）</div>';
+    return;
+  }
+
   const list = gf();
   document.getElementById('hdr-c').textContent = list.length + '件表示中';
   updHeader();
-  const el = document.getElementById('list');
   if (!list.length) {
     el.innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:#444;font-weight:600;">該当商品がありません</div>';
     return;
@@ -347,7 +395,7 @@ function render() {
             <div class="ci-row"><span class="lb">保管BC</span><span class="cv">${esc(p.storBC)}</span></div>
             <div class="ci-row"><span class="lb">商品</span><span class="cn">${esc(nm)}</span></div>
             ${p.note ? `<div class="ci-row"><span class="lb">備考</span><span class="nt">${esc(p.note)}</span></div>` : ''}
-            <div class="ci-row"><span class="lb">状態</span><span class="cv"><b>${esc(p.cond)}</b>&nbsp;&nbsp;購入金額 ¥${Number(p.buyPrice||0).toLocaleString()}&nbsp;&nbsp;購入日 ${esc(p.buyDate)}</span></div>
+            <div class="ci-row"><span class="lb">状態</span><span class="cv"><b>${esc(p.cond)}</b>&nbsp;&nbsp;購入金額 ¥${Number(p.buyPrice||0).toLocaleString()}&nbsp;&nbsp;${p.elapsedMonths!==null ? p.elapsedMonths+'ヶ月経過' : '経過不明'}</span></div>
           </div>
         </div>
       </div>`;
@@ -371,32 +419,43 @@ function tgFav(bc) {
 }
 
 // ─────────────────────────────────────────────────────
-//  チップ状態更新
+//  チップ状態更新（複数選択時の件数表示＋個別✕ボタン）
 // ─────────────────────────────────────────────────────
+const CHIP_LABEL = {maker:'メーカー', category:'カテゴリー', date:'購入日', status:'ステータス', set:'セット'};
+
 function updChips() {
   document.querySelectorAll('.ch').forEach(c => {
     const p = c.dataset.p;
     let active = false;
-    if      (p === 'category') active = !!(F.category || F.type);
-    else if (p === 'set')      active = F.set;
-    else                       active = !!F[p];
+    let text   = CHIP_LABEL[p];
+
+    if (p === 'category') {
+      active = !!(F.category || F.type);
+      text   = F.type || F.category || CHIP_LABEL[p];
+    } else if (p === 'set') {
+      active = F.set;
+    } else {
+      // maker / status / date は Set
+      const n = F[p].size;
+      active = n > 0;
+      if      (n === 1) text = [...F[p]][0];
+      else if (n > 1)   text = `${CHIP_LABEL[p]}(${n})`;
+    }
+
     c.classList.toggle('on', active);
+    c.innerHTML = active
+      ? `${esc(text)}<span class="chx" onclick="event.stopPropagation();resetFilter('${p}')">✕</span>`
+      : esc(text);
   });
 }
 
-// ─────────────────────────────────────────────────────
-//  件数カウント（パネル用）
-// ─────────────────────────────────────────────────────
-function cntFor(pn, v) {
-  if (!v || v.startsWith('全')) return ALL_ITEMS.length;
-  const t = {...F, [pn]: v};
-  return ALL_ITEMS.filter(p => {
-    if (t.maker    && p.maker  !== t.maker)    return false;
-    if (t.category && p.cat    !== t.category) return false;
-    if (t.type     && p.type   !== t.type)     return false;
-    if (t.status   && p.status !== t.status)   return false;
-    return true;
-  }).length;
+// チップの✕：その項目だけを丸ごとリセット（複数選択していても全部解除）
+function resetFilter(p) {
+  if      (p === 'set')      F.set = false;
+  else if (p === 'category') { F.category = null; F.type = null; }
+  else                        F[p] = new Set();
+  updChips();
+  render();
 }
 
 // ─────────────────────────────────────────────────────
@@ -451,14 +510,7 @@ function selTypeItem(tp) {
 }
 
 function updPanelBtn() {
-  const tmp = {...F, category: selCat, type: selType};
-  const cnt = ALL_ITEMS.filter(p => {
-    if (tmp.maker    && p.maker  !== tmp.maker)    return false;
-    if (tmp.category && p.cat    !== tmp.category) return false;
-    if (tmp.type     && p.type   !== tmp.type)     return false;
-    if (tmp.status   && p.status !== tmp.status)   return false;
-    return true;
-  }).length;
+  const cnt = ALL_ITEMS.filter(p => passesFilters(p, {category: selCat, type: selType})).length;
   document.getElementById('pok').textContent = `${cnt}件を表示`;
 }
 
@@ -467,7 +519,6 @@ function updPanelBtn() {
 // ─────────────────────────────────────────────────────
 function openP(n) {
   curP = n;
-  selP = F[n];
   if (n === 'set') { F.set = !F.set; updChips(); render(); return; }
   if (n === 'category') {
     buildCategoryPanel(true);
@@ -475,54 +526,68 @@ function openP(n) {
     document.getElementById('ov').classList.add('op');
     return;
   }
-  // メーカー・購入日・ステータス
+  // メーカー・購入日・ステータス＝複数選択パネル
+  openMultiPanel(n);
+}
+
+// ─────────────────────────────────────────────────────
+//  複数選択パネル（メーカー／購入日／ステータス共通）
+// ─────────────────────────────────────────────────────
+function openMultiPanel(n) {
+  selP = new Set(F[n]);  // 確定済みの選択をコピーして編集開始
+
   const titles = { maker:'メーカー', date:'購入日', status:'ステータス' };
   document.getElementById('pt').textContent = titles[n] || n;
-  let items = [];
+
   if (n === 'maker') {
-    items = [{ name:'全メーカー', cnt:null }].concat(MAKERS.map(m => ({ name: m.name, cnt: m.cnt })));
+    curItems = MAKERS.map(m => ({ name: m.name, cnt: m.cnt }));
   } else if (n === 'date') {
-    items = ['2年以上前','1年以上前','6ヶ月以上前','3ヶ月以上前'].map(v => ({ name:v, cnt:null }));
+    curItems = DATE_BANDS.map(v => ({
+      name: v,
+      cnt : ALL_ITEMS.filter(p => p.band === v).length,
+    }));
   } else if (n === 'status') {
-    items = ['在庫','検品済','保品','No有','出タイ待','出品'].map(v => ({
-      name : v,
-      cnt  : ALL_ITEMS.filter(p => p.status === v).length,
+    curItems = ['在庫','検品済','保品','No有','出タイ待','出品'].map(v => ({
+      name: v,
+      cnt : ALL_ITEMS.filter(p => p.status === v).length,
     }));
   }
-  let h = '';
-  items.forEach(it => {
-    const isAll = it.name.startsWith('全');
-    const cur   = isAll ? !F[n] : F[n] === it.name;
-    const cntTxt = it.cnt !== null ? `(${it.cnt})` : '';
-    h += `<div class="pr2 ${cur?'sl':''}" onclick="selIn('${it.name}')"><span class="pln">${esc(it.name)}</span><span class="plc">${cntTxt}</span></div>`;
-  });
-  document.getElementById('pc').innerHTML = h;
-  document.getElementById('pok').textContent = `${gf().length}件を表示`;
+
+  renderMultiList();
   document.getElementById('pn').classList.add('op');
   document.getElementById('ov').classList.add('op');
 }
 
-function selIn(v) {
-  selP = v.startsWith('全') ? null : v;
-  const tmp = {...F, [curP]: selP};
-  const cnt = ALL_ITEMS.filter(p => {
-    if (tmp.maker  && p.maker  !== tmp.maker)  return false;
-    if (tmp.status && p.status !== tmp.status) return false;
-    return true;
-  }).length;
-  document.getElementById('pok').textContent = `${cnt}件を表示`;
-  document.querySelectorAll('.pr2').forEach(r => {
-    const nm = r.querySelector('.pln').textContent;
-    r.classList.toggle('sl', nm.startsWith('全') ? !selP : selP === nm);
+function renderMultiList() {
+  let h = '';
+  curItems.forEach(it => {
+    const checked = selP.has(it.name);
+    h += `<div class="pr2 ${checked?'sl':''}" onclick="toggleMulti('${esc(it.name)}')">
+      <span class="pln">${checked?'☑':'☐'}　${esc(it.name)}</span>
+      <span class="plc">(${it.cnt})</span>
+    </div>`;
   });
+  document.getElementById('pc').innerHTML = h;
+  updMultiBtn();
+}
+
+function toggleMulti(name) {
+  if (selP.has(name)) selP.delete(name);
+  else                 selP.add(name);
+  renderMultiList();
+}
+
+function updMultiBtn() {
+  const cnt = ALL_ITEMS.filter(p => passesFilters(p, { [curP]: selP })).length;
+  document.getElementById('pok').textContent = `${cnt}件を表示`;
 }
 
 document.getElementById('pok').addEventListener('click', () => {
   if (curP === 'category') {
     F.category = selCat;
     F.type     = selType;
-  } else {
-    F[curP] = selP;
+  } else if (curP === 'maker' || curP === 'date' || curP === 'status') {
+    F[curP] = new Set(selP);
   }
   closeP(); updChips(); render();
 });
@@ -532,7 +597,7 @@ function closeP() {
   document.getElementById('ov').classList.remove('op');
 }
 function clrAll() {
-  F = {maker:null,category:null,type:null,date:null,status:null,set:false};
+  F = {maker:new Set(), category:null, type:null, date:new Set(), status:new Set(), set:false};
   updChips(); render();
 }
 function stTop() { document.getElementById('list').scrollTop = 0; }
