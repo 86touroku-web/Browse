@@ -72,9 +72,9 @@ body{background:#d8dedd;display:flex;justify-content:center;padding:16px;font-fa
 .bn.pr{background:#1a5f4a;color:#fff;border-color:#1a5f4a;font-weight:700;}
 
 /* オーバーレイ・パネル */
-#ov{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:9;display:none;border-radius:14px;}
+#ov{position:absolute;left:0;right:0;top:0;bottom:var(--bot-h,96px);background:rgba(0,0,0,.45);z-index:9;display:none;border-radius:14px 14px 0 0;}
 #ov.op{display:block;}
-#pn{position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:14px 14px 0 0;transform:translateY(100%);transition:transform .27s cubic-bezier(.32,.72,0,1);z-index:10;max-height:80%;display:flex;flex-direction:column;}
+#pn{position:absolute;bottom:var(--bot-h,96px);left:0;right:0;background:#fff;border-radius:14px 14px 0 0;transform:translateY(100%);transition:transform .27s cubic-bezier(.32,.72,0,1);z-index:10;max-height:calc(100% - var(--bot-h,96px) - 14px);display:flex;flex-direction:column;}
 #pn.op{transform:translateY(0);}
 .ph{display:flex;justify-content:space-between;align-items:center;padding:11px 14px 9px;border-bottom:1px solid #ccc;flex-shrink:0;}
 .pt{font-size:14px;font-weight:700;color:#111;}
@@ -233,6 +233,15 @@ function gasCall(fn, payload, cb) {
 // ─────────────────────────────────────────────────────
 //  起動時：全データ1回ダウンロード
 // ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────
+//  ボトムコントロールパネルの実高さを測定し、CSS変数に反映
+//  （詳細選択パネル #pn / オーバーレイ #ov がこの高さの上で止まるようにする）
+// ─────────────────────────────────────────────────────
+function setBotHeight() {
+  const h = document.getElementById('bot').offsetHeight;
+  if (h > 0) document.getElementById('wrap').style.setProperty('--bot-h', h + 'px');
+}
+
 function init() {
   loadFavs();
   setMsg('商品データを読み込み中…');
@@ -257,6 +266,9 @@ function init() {
       document.getElementById('loading').style.display = 'none';
       document.getElementById('list').style.display    = 'block';
       document.getElementById('bot').style.display      = 'block';
+      // ボトムバーの実高さを測定し、詳細パネルがそこに重ならないようCSS変数に反映
+      setBotHeight();
+      window.addEventListener('resize', setBotHeight);
       // チップのイベント登録
       document.querySelectorAll('.ch').forEach(c => {
         c.addEventListener('click', () => openP(c.dataset.p));
