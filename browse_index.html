@@ -33,30 +33,39 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 .gh{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;margin:6px 0 3px;background:#fbf585;border-radius:9px;border:1.5px solid #1a5f4a;}
 .gn{font-size:12px;font-weight:700;color:#1a5f4a;}
 .gr{display:flex;align-items:center;gap:6px;}
-.pu{font-size:9px;padding:2px 7px;border-radius:9px;background:#e8f5e9;color:#1a5f4a;border:0.5px solid #1a5f4a;font-weight:700;white-space:nowrap;}
-.pd{font-size:9px;padding:2px 7px;border-radius:9px;background:#fdecea;color:#b00000;border:0.5px solid #b00000;font-weight:700;white-space:nowrap;}
+.pu{font-size:9px;padding:2px 7px;border-radius:9px;background:#e8f5e9;color:#ff31d2;border:0.5px solid #1a5f4a;font-weight:700;white-space:nowrap;}
+.pd{font-size:9px;padding:2px 7px;border-radius:9px;background:#fdecea;color:#b9b9b9;border:0.5px solid #b00000;font-weight:700;white-space:nowrap;}
 .gc{font-size:11px;color:#444;font-weight:600;}
 
 /* カード */
 .card{background:#fff;border-radius:9px;border:2px solid #1d24ed;margin-bottom:5px;overflow:hidden;}
-.card-top{background:#e0f2fc;padding:8px 9px 7px;}
-.r1{display:flex;align-items:center;gap:6px;}
-.bc{font-size:12px;color:#111;font-weight:700;}
-.st{font-size:11px;padding:3px 0;border-radius:8px;font-weight:700;color:#fff;min-width:52px;text-align:center;margin:0 4px;}
+/* カード全体レイアウト：左画像＋右テキストの横並び */
+.card-body{display:flex;gap:0;}
+
+/* 左：画像エリア */
+.card-img-col{background:#ade3fa;padding:7px 7px 7px 8px;display:flex;align-items:stretch;flex-shrink:0;}
+.cimg{border-radius:5px;border:1px solid #585858;display:flex;align-items:center;justify-content:center;color:#888;font-size:9px;font-weight:600;width:70px;min-height:90px;object-fit:cover;align-self:stretch;}
+
+/* 右：テキストエリア */
+.card-right{background:#dff4fd;flex:1;display:flex;flex-direction:column;min-width:0;}
+
+/* 上段：BC・ステータス・商品NO・連番・♡ */
+.card-top{background:#ade3fa;padding:6px 8px 5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.r1{display:flex;align-items:center;gap:5px;flex:1;min-width:0;}
+.bc{font-size:12px;color:#111;font-weight:700;white-space:nowrap;}
+.st{font-size:11px;padding:3px 0;border-radius:8px;font-weight:700;color:#fff;min-width:48px;text-align:center;flex-shrink:0;}
 .s0{background:#d07000;}.s1{background:#1a7a30;}.s2{background:#bb0000;}.s3{background:#0055bb;}.s4{background:#6600aa;}
-.cno{font-size:11px;color:#111;font-weight:600;}
-.seq{font-size:10px;color:#333;font-weight:600;margin-left:auto;white-space:nowrap;}
-.fb{width:32px;height:32px;border-radius:8px;border:2px solid #ec1c24;background:#fff;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ec1c24;}
+.cno{font-size:11px;color:#111;font-weight:600;white-space:nowrap;}
+.seq{font-size:10px;color:#333;font-weight:600;white-space:nowrap;flex-shrink:0;}
+.fb{width:30px;height:30px;border-radius:7px;border:2px solid #ec1c24;background:#fff;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ec1c24;}
 .fb.on{background:#fff;border-color:#ec1c24;color:#ec1c24;}
 
-/* カード下段 */
-.card-bot{background:#f0f7fd;padding:7px 9px 8px;display:flex;gap:7px;}
-.cimg{border-radius:5px;border:1px solid #585858;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#888;font-size:9px;font-weight:600;width:58px;min-height:70px;align-self:stretch;object-fit:cover;}
-.ci{flex:1;font-size:11px;line-height:1.75;color:#111;}
+/* 下段：テキスト情報 */
+.card-bot{background:#dff4fd;padding:6px 8px 7px;flex:1;}
+.ci{font-size:11px;line-height:1.75;color:#111;}
 .ci-row{display:flex;gap:0;}
 .lb{color:#111;font-weight:700;text-align:right;min-width:46px;margin-right:5px;flex-shrink:0;}
 .cv{color:#111;font-weight:500;}
-.cn{color:#1a5f4a;font-weight:800;font-size:11px;}
 .nt{color:#444;font-size:10px;font-weight:500;}
 
 /* ボトム */
@@ -390,25 +399,28 @@ function render() {
       sq++;
       const fv  = favs.has(p.bc);
       const img = p.imgUrl
-        ? `<img class="cimg" src="${esc(p.imgUrl)}" loading="lazy" alt="商品画像" style="min-height:70px;">`
+        ? `<img class="cimg" src="${esc(p.imgUrl)}" loading="lazy" alt="商品画像">`
         : `<div class="cimg">画像なし</div>`;
       h += `<div class="card">
-        <div class="card-top">
-          <div class="r1">
-            <span class="bc">BC ${esc(p.bc)}</span>
-            <span class="st ${SC[p.status]||'s3'}">${esc(p.status)}</span>
-            <span class="cno">商品NO ${esc(String(p.no))}</span>
-            <span class="seq">${sq}/${list.length}</span>
-            <button class="fb ${fv?'on':''}" onclick="tgFav('${p.bc}')">${fv?'♥':'♡'}</button>
-          </div>
-        </div>
-        <div class="card-bot">
-          ${img}
-          <div class="ci">
-            <div class="ci-row"><span class="lb">保管BC</span><span class="cv">${esc(p.storBC)}</span></div>
-            <div class="ci-row"><span class="lb">商品</span><span class="cn">${esc(nm)}</span></div>
-            ${p.note ? `<div class="ci-row"><span class="lb">備考</span><span class="nt">${esc(p.note)}</span></div>` : ''}
-            <div class="ci-row"><span class="lb">状態</span><span class="cv"><b>${esc(p.cond)}</b>&nbsp;&nbsp;購入金額 ¥${Number(p.buyPrice||0).toLocaleString()}&nbsp;&nbsp;${p.elapsedMonths!==null ? p.elapsedMonths+'ヶ月経過' : '経過不明'}</span></div>
+        <div class="card-body">
+          <div class="card-img-col">${img}</div>
+          <div class="card-right">
+            <div class="card-top">
+              <div class="r1">
+                <span class="bc">BC ${esc(p.bc)}</span>
+                <span class="st ${SC[p.status]||'s3'}">${esc(p.status)}</span>
+                <span class="cno">商品NO ${esc(String(p.no))}</span>
+              </div>
+              <span class="seq">${sq}/${list.length}</span>
+              <button class="fb ${fv?'on':''}" onclick="tgFav('${p.bc}')">${fv?'♥':'♡'}</button>
+            </div>
+            <div class="card-bot">
+              <div class="ci">
+                <div class="ci-row"><span class="lb">保管BC</span><span class="cv">${esc(p.storBC)}</span></div>
+                ${p.note ? `<div class="ci-row"><span class="lb">備考</span><span class="nt">${esc(p.note)}</span></div>` : ''}
+                <div class="ci-row"><span class="lb">状態</span><span class="cv"><b>${esc(p.cond)}</b>&nbsp;&nbsp;購入金額 ¥${Number(p.buyPrice||0).toLocaleString()}&nbsp;&nbsp;${p.elapsedMonths!==null ? p.elapsedMonths+'ヶ月経過' : '経過不明'}</span></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>`;
