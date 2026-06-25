@@ -32,9 +32,10 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 /* グループ見出し */
 .gh{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;margin:6px 0 3px;background:#fbf585;border-radius:9px;border:1.5px solid #1a5f4a;}
 .gn{font-size:12px;font-weight:700;color:#1a5f4a;}
-.gr{display:flex;align-items:center;gap:6px;}
-.pu{font-size:9px;padding:2px 7px;border-radius:9px;background:#e8f5e9;color:#ff31d2;border:0.5px solid #1a5f4a;font-weight:700;white-space:nowrap;}
-.pd{font-size:9px;padding:2px 7px;border-radius:9px;background:#fdecea;color:#b9b9b9;border:0.5px solid #b00000;font-weight:700;white-space:nowrap;}
+.gr{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:6px;}
+.pu{font-size:9px;padding:2px 6px;border-radius:9px;background:#e8f5e9;color:#ff31d2;border:0.5px solid #1a5f4a;font-weight:700;white-space:nowrap;}
+.pd{font-size:9px;padding:2px 6px;border-radius:9px;background:#fdecea;color:#b9b9b9;border:0.5px solid #b00000;font-weight:700;white-space:nowrap;}
+.pno{font-size:9px;padding:2px 6px;border-radius:9px;background:#e8f5e9;color:#1a5f4a;border:0.5px solid #1a5f4a;font-weight:700;white-space:nowrap;}
 .gc{font-size:11px;color:#444;font-weight:600;}
 
 /* カード */
@@ -338,13 +339,19 @@ function gf() {
 //  利益率バッジ
 // ─────────────────────────────────────────────────────
 function pbadge(p) {
-  if (p.profitName === null || p.profitType === null) return '';
+  // タイプ平均がない場合はバッジ非表示
+  if (p.profitType === null) return '';
+
+  // 販売実績なし（個別利益率がnull）→ グリーン固定・ハイフン表示
+  if (p.profitName === null) {
+    return `<span class="pno">- vs 平均${p.profitType.toFixed(1)}%</span>`;
+  }
+
+  // 販売実績あり → 個別と平均を比較してカラー動的変化
   const d  = p.profitName - p.profitType;
   const up = d >= 0;
   const ar = up ? '↑' : '↓';
   const cl = up ? 'pu' : 'pd';
-  // 表示: 51.0%↑ vs 平均38.2%
-  // テキストカラーは動的（pu=#ff31d2、pd=#b9b9b9）
   return `<span class="${cl}">${p.profitName.toFixed(1)}%${ar} vs 平均${p.profitType.toFixed(1)}%</span>`;
 }
 
