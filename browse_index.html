@@ -36,7 +36,7 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 .pu{font-size:11px;padding:3px 7px;border-radius:11px;background:#e8f5e9;color:#ff31d2;border:0.5px solid #1a5f4a;font-weight:700;white-space:nowrap;}
 .pd{font-size:11px;padding:3px 7px;border-radius:11px;background:#e8f5e9;color:#000000;border:0.5px solid #1a5f4a;font-weight:700;white-space:nowrap;}
 .pno{font-size:11px;padding:3px 7px;border-radius:11px;background:#e8f5e9;color:#1a5f4a;border:0.5px solid #1a5f4a;font-weight:700;white-space:nowrap;}
-.gc{font-size:11px;color:#444;font-weight:600;display:none;}
+.gc{font-size:11px;color:#444;font-weight:600;}
 
 /* カード */
 .card{background:#fff;border-radius:9px;border:2px solid #1d24ed;margin-bottom:5px;overflow:hidden;}
@@ -57,7 +57,7 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 .st{font-size:11px;padding:3px 0;border-radius:8px;font-weight:700;color:#fff;min-width:48px;text-align:center;flex-shrink:0;}
 .s0{background:#d07000;}.s1{background:#1a7a30;}.s2{background:#bb0000;}.s3{background:#0055bb;}.s4{background:#6600aa;}
 .cno{font-size:11px;color:#111;font-weight:600;white-space:nowrap;}
-.seq{font-size:10px;color:#333;font-weight:600;white-space:nowrap;flex-shrink:0;display:none;}
+.seq{font-size:10px;color:#333;font-weight:600;white-space:nowrap;flex-shrink:0;}
 .fb{width:30px;height:30px;border-radius:7px;border:2px solid #ec1c24;background:#fff;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ec1c24;}
 .fb.on{background:#fff;border-color:#ec1c24;color:#ec1c24;}
 
@@ -408,7 +408,7 @@ function render() {
     if (!grps[p.name]) grps[p.name] = [];
     grps[p.name].push(p);
   });
-  let h = '', sq = 0;
+  let h = '';
   Object.entries(grps).forEach(([nm, its]) => {
     const s = its[0];
     const badge = pbadge(s);
@@ -416,6 +416,7 @@ function render() {
       <span class="gn">${esc(nm)}</span>
       <div class="gr">${badge}<span class="gc">${its.length}件</span></div>
     </div>`;
+    let sq = 0;  // グループ単位でリセット
     its.forEach(p => {
       sq++;
       const fv  = favs.has(p.bc);
@@ -437,7 +438,7 @@ function render() {
                 <span class="st ${SC[p.status]||'s3'}">${esc(p.status)}</span>
                 <span class="cno">商品NO ${esc(String(p.no))}</span>
               </div>
-              <span class="seq">${sq}/${list.length}</span>
+              <span class="seq">${sq}/${its.length}</span>
               <button class="fb ${fv?'on':''}" onclick="tgFav('${p.bc}')">${fv?'♥':'♡'}</button>
             </div>
             <div class="card-bot">
@@ -654,6 +655,8 @@ function closeP() {
 }
 function clrAll() {
   F = {maker:new Set(), category:null, type:null, date:new Set(), status:new Set(), set:false};
+  closeP();    // 絞り込みパネルが開いていれば閉じる
+  closeFav();  // お気に入りポップアップが開いていれば閉じる
   updChips(); render();
 }
 function stTop() { document.getElementById('list').scrollTop = 0; }
