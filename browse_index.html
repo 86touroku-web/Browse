@@ -576,6 +576,13 @@ function updPanelBtn() {
 //  パネル開閉
 // ─────────────────────────────────────────────────────
 function openP(n) {
+  // パネルを開いたまま別のチップに切り替える場合は、編集中の内容を先に確定保存する
+  // （③「○○件を表示」のタップを省略しても選択内容が消えないようにする）
+  // ※「セット」チップは即時トグルの独立動作のため対象外（現状維持）
+  if (document.getElementById('pn').classList.contains('op') && n !== 'set') {
+    commitCurPanel();
+    updChips();
+  }
   curP = n;
   if (n === 'set') { F.set = !F.set; updChips(); render(); return; }
   if (n === 'category') {
@@ -639,13 +646,21 @@ function updMultiBtn() {
   document.getElementById('pok').textContent = `${cnt}件を表示`;
 }
 
-document.getElementById('pok').addEventListener('click', () => {
+// 編集中のパネル内容を F（確定データ）へ書き込む共通処理
+// ・⑥「○○件を表示」ボタン押下時の確定
+// ・別のチップへ切り替える際の自動確定（フローを止めないため）
+// の両方から呼ばれる
+function commitCurPanel() {
   if (curP === 'category') {
     F.category = selCat;
     F.type     = selType;
   } else if (curP === 'maker' || curP === 'date' || curP === 'status') {
     F[curP] = new Set(selP);
   }
+}
+
+document.getElementById('pok').addEventListener('click', () => {
+  commitCurPanel();
   closeP(); updChips(); render();
 });
 
