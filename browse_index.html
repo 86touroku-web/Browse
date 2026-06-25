@@ -43,8 +43,8 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 .card-body{display:flex;gap:0;}
 
 /* 左：画像エリア */
-.card-img-col{background:#ade3fa;padding:7px 7px 7px 8px;display:flex;align-items:stretch;flex-shrink:0;}
-.cimg{border-radius:5px;border:1px solid #585858;display:flex;align-items:center;justify-content:center;color:#888;font-size:9px;font-weight:600;width:70px;min-height:90px;object-fit:cover;align-self:stretch;}
+.card-img-col{background:#ade3fa;padding:6px 6px 6px 7px;display:flex;align-items:center;flex-shrink:0;}
+.cimg{border-radius:5px;border:1px solid #585858;display:flex;align-items:center;justify-content:center;color:#888;font-size:9px;font-weight:600;width:68px;height:80px;object-fit:cover;flex-shrink:0;}
 
 /* 右：テキストエリア */
 .card-right{background:#dff4fd;flex:1;display:flex;flex-direction:column;min-width:0;}
@@ -343,7 +343,9 @@ function pbadge(p) {
   const up = d >= 0;
   const ar = up ? '↑' : '↓';
   const cl = up ? 'pu' : 'pd';
-  return `<span class="${cl}">${p.profitName.toFixed(1)}%${ar} vs タイプ平均${p.profitType.toFixed(1)}%</span>`;
+  // 表示: 51.0%↑ vs 平均38.2%
+  // テキストカラーは動的（pu=#ff31d2、pd=#b9b9b9）
+  return `<span class="${cl}">${p.profitName.toFixed(1)}%${ar} vs 平均${p.profitType.toFixed(1)}%</span>`;
 }
 
 // ─────────────────────────────────────────────────────
@@ -401,6 +403,11 @@ function render() {
       const img = p.imgUrl
         ? `<img class="cimg" src="${esc(p.imgUrl)}" loading="lazy" alt="商品画像">`
         : `<div class="cimg">画像なし</div>`;
+      // 状態行：condが空欄の場合は状態値を空で表示
+      const condTxt = p.cond ? `<b>${esc(p.cond)}</b>` : '';
+      // 購入金額・経過月を状態と同じ行に1行まとめ
+      const priceTxt = `購入金額 ¥${Number(p.buyPrice||0).toLocaleString()}`;
+      const elapseTxt = p.elapsedMonths !== null ? `${p.elapsedMonths}ヶ月経過` : '';
       h += `<div class="card">
         <div class="card-body">
           <div class="card-img-col">${img}</div>
@@ -417,8 +424,8 @@ function render() {
             <div class="card-bot">
               <div class="ci">
                 <div class="ci-row"><span class="lb">保管BC</span><span class="cv">${esc(p.storBC)}</span></div>
-                ${p.note ? `<div class="ci-row"><span class="lb">備考</span><span class="nt">${esc(p.note)}</span></div>` : ''}
-                <div class="ci-row"><span class="lb">状態</span><span class="cv"><b>${esc(p.cond)}</b>&nbsp;&nbsp;購入金額 ¥${Number(p.buyPrice||0).toLocaleString()}&nbsp;&nbsp;${p.elapsedMonths!==null ? p.elapsedMonths+'ヶ月経過' : '経過不明'}</span></div>
+                <div class="ci-row"><span class="lb">備考</span><span class="nt">${esc(p.note)}</span></div>
+                <div class="ci-row"><span class="lb">状態</span><span class="cv">${condTxt}&nbsp;&nbsp;${priceTxt}&nbsp;&nbsp;${elapseTxt}</span></div>
               </div>
             </div>
           </div>
