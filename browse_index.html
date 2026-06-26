@@ -16,7 +16,8 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 
 /* ヘッダー */
 #hdr{background:#1a5f4a;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;}
-#hdr-t{color:#fff;font-size:14px;font-weight:700;}
+#hdr-set{font-size:11px;padding:5px 12px;border-radius:13px;border:1.5px solid #fff;background:transparent;color:#fff;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;}
+#hdr-set.on{background:#ffd400;color:#1a5f4a;border-color:#ffd400;}
 #hdr-sub{position:absolute;left:50%;transform:translateX(-50%);color:#fff;font-size:15px;font-weight:700;white-space:nowrap;}
 #hdr-c{color:#a0d4c4;font-size:12px;font-weight:600;}
 
@@ -70,17 +71,14 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 .nt{color:#444;font-size:10px;font-weight:500;}
 
 /* ボトム */
-#bot{background:#fff;border-top:1px solid #ccc;padding:5px 6px 7px;flex-shrink:0;display:none;}
-#chips{display:flex;gap:4px;flex-wrap:wrap;padding:3px 0 6px;}
-.ch{font-size:11px;padding:4px 10px;border-radius:13px;border:1px solid #888;color:#111;background:#f0f0f0;cursor:pointer;user-select:none;font-weight:600;display:inline-flex;align-items:center;gap:5px;}
-.ch.on{border-color:#1a5f4a;color:#fff;background:#1a5f4a;font-weight:700;}
-.chx{font-size:11px;font-weight:900;line-height:1;padding:0 1px;}
+#bot{background:#fff;border-top:1px solid #ccc;padding:6px 6px 8px;flex-shrink:0;display:none;}
 
 /* 絞り込み未選択時の案内 */
 .emptyhint{padding:40px 20px;text-align:center;font-size:13px;color:#555;font-weight:600;line-height:1.8;}
-#btns{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
+#btns{display:grid;grid-template-columns:62px 1fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:5px;}
 .bn{font-size:11px;padding:7px 2px;border-radius:7px;border:1px solid #888;background:#f0f0f0;color:#111;cursor:pointer;text-align:center;font-family:inherit;font-weight:600;}
 .bn.pr{background:#1a5f4a;color:#fff;border-color:#1a5f4a;font-weight:700;}
+.bn-clear{grid-row:span 2;font-size:13px;font-weight:800;border-radius:7px;border:1px solid #888;background:#f0f0f0;color:#111;cursor:pointer;font-family:inherit;line-height:1.3;}
 
 /* オーバーレイ・パネル */
 #ov{position:absolute;left:0;right:0;top:0;bottom:var(--bot-h,96px);background:rgba(0,0,0,.45);z-index:9;display:none;border-radius:14px 14px 0 0;}
@@ -123,13 +121,30 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 #fp .card-top,#fp .card-img-col{background:#fffba7;}
 #fp .card-bot{background:#fdfbd6;}
 #fp .bc,#fp .cno,#fp .lb,#fp .cv,#fp .nt{color:#1a5f4a;}
+
+/* 推移分析ポップアップ */
+#tp{position:absolute;inset:12px 9px 90px;background:#fff;border-radius:11px;border:1px solid #aaa;z-index:20;display:none;flex-direction:column;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.2);}
+#tp.op{display:flex;}
+.th{display:flex;justify-content:space-between;align-items:center;padding:10px 13px;background:#ff8f3c;flex-shrink:0;}
+.th-l{display:flex;align-items:center;gap:6px;}
+.th-ico{font-size:16px;line-height:1;}
+.th-t{font-size:14px;font-weight:700;color:#111;}
+.tx{font-size:22px;cursor:pointer;border:none;background:none;color:#111;padding:0;line-height:1;font-weight:700;}
+.tl2{flex:1;overflow:auto;padding:10px 8px;}
+.tn{font-size:10px;color:#777;font-weight:600;padding:0 2px 8px;}
+.ttbl{width:100%;border-collapse:collapse;margin-bottom:16px;}
+.ttbl th{background:#283593;color:#fff;font-size:10px;font-weight:700;padding:5px 1px;border:1px solid #1a237e;white-space:nowrap;}
+.ttbl td{border:1px solid #ddd;text-align:center;font-weight:700;padding:6px 1px;font-size:13px;white-space:nowrap;color:#111;}
+.ttbl td.lbl{background:#f0f0f0;font-size:11px;font-weight:700;}
+.ttbl tr.avgrow td{background:#fff3cd;color:#d84315;}
+.te{padding:22px;text-align:center;font-size:13px;color:#555;font-weight:600;}
 </style>
 </head>
 <body>
 <div id="wrap">
 <div id="app">
   <div id="hdr">
-    <span id="hdr-t">🎣</span>
+    <button id="hdr-set" onclick="toggleSet()">セット</button>
     <span id="hdr-sub">ルアー在庫回覧</span>
     <span id="hdr-c">読込中…</span>
   </div>
@@ -145,18 +160,14 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 
   <!-- ボトムコントロール（ロード後に表示） -->
   <div id="bot">
-    <div id="chips">
-      <span class="ch" data-p="maker">メーカー</span>
-      <span class="ch" data-p="category">カテゴリー</span>
-      <span class="ch" data-p="date">購入日</span>
-      <span class="ch" data-p="status">ステータス</span>
-      <span class="ch" data-p="set">セット</span>
-    </div>
     <div id="btns">
-      <button class="bn pr" onclick="openP('maker')">🔍 絞り込み</button>
-      <button class="bn" onclick="clrAll()">✕ クリア</button>
-      <button class="bn" onclick="stTop()">↑ 先頭へ</button>
+      <button class="bn-clear" onclick="clrAll()">✕<br>クリア</button>
+      <button class="bn" data-p="maker" onclick="openP('maker')">メーカー</button>
+      <button class="bn" data-p="category" onclick="openP('category')">カテゴリー</button>
+      <button class="bn" data-p="date" onclick="openP('date')">購入日</button>
       <button class="bn" onclick="openFav()">♡ お気に入り</button>
+      <button class="bn" onclick="openTrend()">📊 推移分析</button>
+      <button class="bn" data-p="status" onclick="openP('status')">ステータス</button>
     </div>
   </div>
 </div>
@@ -177,6 +188,18 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
     <div class="fh-r"><span class="fh-cnt" id="fcnt">0件</span><button class="fx" onclick="closeFav()">×</button></div>
   </div>
   <div class="fl2" id="fl"></div>
+</div>
+
+<div id="tp">
+  <div class="th">
+    <div class="th-l"><span class="th-ico">📊</span><span class="th-t" id="tp-title">推移分析</span></div>
+    <button class="tx" onclick="closeTrend()">×</button>
+  </div>
+  <div class="tl2" id="tl">
+    <div class="tn">※金額は万円単位（例：1.2＝12,000円）・利益率は%</div>
+    <table class="ttbl" id="ttbl1"></table>
+    <table class="ttbl" id="ttbl2"></table>
+  </div>
 </div>
 </div>
 
@@ -200,6 +223,7 @@ let selCat      = null;
 let selType     = null;
 let selP        = null;   // 複数選択パネル編集中の一時Set
 let curItems    = [];     // 複数選択パネル表示中のリスト（再描画用）
+let TREND_DATA  = null;   // 推移分析ポップアップのデータ（初回取得後はキャッシュして再利用）
 
 // ─────────────────────────────────────────────────────
 //  購入日の「区間」判定
@@ -292,12 +316,9 @@ function init() {
       // ボトムバーの実高さを測定し、詳細パネルがそこに重ならないようCSS変数に反映
       setBotHeight();
       window.addEventListener('resize', setBotHeight);
-      // チップのイベント登録
-      document.querySelectorAll('.ch').forEach(c => {
-        c.addEventListener('click', () => openP(c.dataset.p));
-      });
       // 起動時は絞り込み未選択＝商品を表示しない（render内で案内表示になる）
-      updChips();
+      updFilterBtns();
+      updHeaderSet();
       render();
     });
   });
@@ -471,43 +492,40 @@ function tgFav(bc) {
 }
 
 // ─────────────────────────────────────────────────────
-//  チップ状態更新（複数選択時の件数表示＋個別✕ボタン）
+//  ボトムボタン状態更新（選択中の値・件数を表示）
 // ─────────────────────────────────────────────────────
-const CHIP_LABEL = {maker:'メーカー', category:'カテゴリー', date:'購入日', status:'ステータス', set:'セット'};
+const BTN_LABEL = {maker:'メーカー', category:'カテゴリー', date:'購入日', status:'ステータス'};
 
-function updChips() {
-  document.querySelectorAll('.ch').forEach(c => {
-    const p = c.dataset.p;
+function updFilterBtns() {
+  document.querySelectorAll('#btns .bn[data-p]').forEach(btn => {
+    const p = btn.dataset.p;
     let active = false;
-    let text   = CHIP_LABEL[p];
+    let text   = BTN_LABEL[p];
 
     if (p === 'category') {
       active = !!(F.category || F.type);
-      text   = F.type || F.category || CHIP_LABEL[p];
-    } else if (p === 'set') {
-      active = F.set;
+      text   = F.type || F.category || BTN_LABEL[p];
     } else {
       // maker / status / date は Set
       const n = F[p].size;
       active = n > 0;
       if      (n === 1) text = [...F[p]][0];
-      else if (n > 1)   text = `${CHIP_LABEL[p]}(${n})`;
+      else if (n > 1)   text = `${BTN_LABEL[p]}(${n})`;
     }
 
-    c.classList.toggle('on', active);
-    c.innerHTML = active
-      ? `${esc(text)}<span class="chx" onclick="event.stopPropagation();resetFilter('${p}')">✕</span>`
-      : esc(text);
+    btn.classList.toggle('pr', active);
+    btn.textContent = text;
   });
 }
 
-// チップの✕：その項目だけを丸ごとリセット（複数選択していても全部解除）
-function resetFilter(p) {
-  if      (p === 'set')      F.set = false;
-  else if (p === 'category') { F.category = null; F.type = null; }
-  else                        F[p] = new Set();
-  updChips();
+// セット：ヘッダー左の専用ボタンで即時トグル（パネルは開かない）
+function toggleSet() {
+  F.set = !F.set;
+  updHeaderSet();
   render();
+}
+function updHeaderSet() {
+  document.getElementById('hdr-set').classList.toggle('on', F.set);
 }
 
 // ─────────────────────────────────────────────────────
@@ -576,15 +594,13 @@ function updPanelBtn() {
 //  パネル開閉
 // ─────────────────────────────────────────────────────
 function openP(n) {
-  // パネルを開いたまま別のチップに切り替える場合は、編集中の内容を先に確定保存する
+  // パネルを開いたまま別のボタンに切り替える場合は、編集中の内容を先に確定保存する
   // （③「○○件を表示」のタップを省略しても選択内容が消えないようにする）
-  // ※「セット」チップは即時トグルの独立動作のため対象外（現状維持）
-  if (document.getElementById('pn').classList.contains('op') && n !== 'set') {
+  if (document.getElementById('pn').classList.contains('op')) {
     commitCurPanel();
-    updChips();
+    updFilterBtns();
   }
   curP = n;
-  if (n === 'set') { F.set = !F.set; updChips(); render(); return; }
   if (n === 'category') {
     buildCategoryPanel(true);
     document.getElementById('pn').classList.add('op');
@@ -661,7 +677,7 @@ function commitCurPanel() {
 
 document.getElementById('pok').addEventListener('click', () => {
   commitCurPanel();
-  closeP(); updChips(); render();
+  closeP(); updFilterBtns(); render();
 });
 
 function closeP() {
@@ -672,11 +688,12 @@ function clrAll() {
   F = {maker:new Set(), category:null, type:null, date:new Set(), status:new Set(), set:false};
   closeP();    // 絞り込みパネルが開いていれば閉じる
   closeFav();  // お気に入りポップアップが開いていれば閉じる
-  updChips(); render();
+  closeTrend(); // 推移分析ポップアップが開いていれば閉じる
+  updFilterBtns(); updHeaderSet(); render();
 }
-function stTop() { document.getElementById('list').scrollTop = 0; }
 
 function openFav() {
+  closeTrend(); // 推移分析が開いていれば閉じてから開く
   renderFavList();
   document.getElementById('fp').classList.add('op');
 }
@@ -750,6 +767,69 @@ function removeFav(bc) {
   saveFavs();
   render();        // 通常一覧側の表示も更新
   renderFavList(); // お気に入りポップアップ側も更新
+}
+
+// ─────────────────────────────────────────────────────
+//  推移分析ポップアップ
+//  ・スプレッドシート「推移分析」シートの2表をそのまま参照
+//  ・金額は万円単位（小数1桁）に変換、％はそのまま（既に整数）表示
+//  ・備考・最終更新の列は升目には出さない（簡易版）
+// ─────────────────────────────────────────────────────
+function openTrend() {
+  closeFav(); // お気に入りが開いていれば閉じてから開く
+  document.getElementById('tp').classList.add('op');
+  if (TREND_DATA) { renderTrend(); return; }
+  document.getElementById('tl').innerHTML = '<div class="te">読み込み中…</div>';
+  gasCall('getTrendAnalysisBrowse', {}, function(res) {
+    if (!res.ok) {
+      document.getElementById('tl').innerHTML = '<div class="te">取得失敗：' + esc(res.error || '') + '</div>';
+      return;
+    }
+    TREND_DATA = res;
+    renderTrend();
+  });
+}
+function closeTrend() { document.getElementById('tp').classList.remove('op'); }
+
+// 金額→万円単位（小数1桁）。空欄はそのまま空欄。
+function fmtMan(v) {
+  if (v === '' || v === null || v === undefined) return '';
+  const n = Number(v);
+  if (isNaN(n)) return '';
+  return (n / 10000).toFixed(1);
+}
+// 件数・在庫数など整数値。空欄はそのまま空欄。
+function fmtNum(v) {
+  if (v === '' || v === null || v === undefined) return '';
+  return String(v);
+}
+
+function renderTrend() {
+  const d = TREND_DATA;
+  document.getElementById('tp-title').textContent = d.title || '推移分析';
+
+  // 左テーブル（推移分析）：備考・最終更新の2列は升目には出さない
+  const lh = ['月','純利益','落札数','出品数','購入額','購入数','在庫','利益率'];
+  let h1 = '<tr>' + lh.map(x => `<th>${esc(x)}</th>`).join('') + '</tr>';
+  (d.left.rows || []).forEach(r => {
+    const isAvg = r[0] === '月平均';
+    const cells = [r[0], fmtMan(r[1]), fmtNum(r[2]), fmtNum(r[3]), fmtMan(r[4]), fmtNum(r[5]), fmtNum(r[6]), fmtNum(r[7])];
+    h1 += `<tr class="${isAvg ? 'avgrow' : ''}">` +
+          cells.map((c, i) => `<td class="${i === 0 ? 'lbl' : ''}">${esc(c)}</td>`).join('') +
+          '</tr>';
+  });
+  document.getElementById('ttbl1').innerHTML = h1;
+
+  // 右テーブル（タイプ別落札数）：全列そのまま整数表示
+  const rh = d.right.header || [];
+  let h2 = '<tr>' + rh.map(x => `<th>${esc(x)}</th>`).join('') + '</tr>';
+  (d.right.rows || []).forEach(r => {
+    const isAvg = r[0] === '月平均';
+    h2 += `<tr class="${isAvg ? 'avgrow' : ''}">` +
+          r.map((c, i) => `<td class="${i === 0 ? 'lbl' : ''}">${esc(i === 0 ? c : fmtNum(c))}</td>`).join('') +
+          '</tr>';
+  });
+  document.getElementById('ttbl2').innerHTML = h2;
 }
 
 // ─────────────────────────────────────────────────────
