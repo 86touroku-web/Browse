@@ -197,6 +197,7 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
   </div>
   <div class="tl2" id="tl">
     <div class="tn">※金額は万円単位（例：1.2＝12,000円）・利益率は%</div>
+    <div class="te" id="tmsg" style="display:none;"></div>
     <table class="ttbl" id="ttbl1"></table>
     <table class="ttbl" id="ttbl2"></table>
   </div>
@@ -779,10 +780,10 @@ function openTrend() {
   closeFav(); // お気に入りが開いていれば閉じてから開く
   document.getElementById('tp').classList.add('op');
   if (TREND_DATA) { renderTrend(); return; }
-  document.getElementById('tl').innerHTML = '<div class="te">読み込み中…</div>';
+  showTrendMsg('読み込み中…');
   gasCall('getTrendAnalysisBrowse', {}, function(res) {
     if (!res.ok) {
-      document.getElementById('tl').innerHTML = '<div class="te">取得失敗：' + esc(res.error || '') + '</div>';
+      showTrendMsg('取得失敗：' + (res.error || ''));
       return;
     }
     TREND_DATA = res;
@@ -790,6 +791,15 @@ function openTrend() {
   });
 }
 function closeTrend() { document.getElementById('tp').classList.remove('op'); }
+
+// 読込中・エラー時の文言表示（テーブル要素自体は消さず、文言欄だけ切替）
+function showTrendMsg(msg) {
+  const m = document.getElementById('tmsg');
+  m.textContent = msg;
+  m.style.display = 'block';
+  document.getElementById('ttbl1').innerHTML = '';
+  document.getElementById('ttbl2').innerHTML = '';
+}
 
 // 金額→万円単位（小数1桁）。空欄はそのまま空欄。
 function fmtMan(v) {
@@ -805,6 +815,7 @@ function fmtNum(v) {
 }
 
 function renderTrend() {
+  document.getElementById('tmsg').style.display = 'none';
   const d = TREND_DATA;
   document.getElementById('tp-title').textContent = d.title || '推移分析';
 
