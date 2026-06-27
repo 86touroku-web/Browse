@@ -813,6 +813,15 @@ function fmtNum(v) {
   if (v === '' || v === null || v === undefined) return '';
   return String(v);
 }
+// 利益率専用："65%"のような文字列でも、0.65のような小数でもどちらでも整数%表示に統一
+function fmtPct(v) {
+  if (v === '' || v === null || v === undefined) return '';
+  if (typeof v === 'string' && v.indexOf('%') !== -1) return v; // 既に"65%"形式ならそのまま
+  const n = Number(v);
+  if (isNaN(n)) return '';
+  const pct = (n > 0 && n <= 1) ? n * 100 : n; // 0〜1の小数なら%に変換
+  return Math.round(pct) + '%';
+}
 
 function renderTrend() {
   document.getElementById('tmsg').style.display = 'none';
@@ -824,7 +833,7 @@ function renderTrend() {
   let h1 = '<tr>' + lh.map(x => `<th>${esc(x)}</th>`).join('') + '</tr>';
   (d.left.rows || []).forEach(r => {
     const isAvg = r[0] === '月平均';
-    const cells = [r[0], fmtMan(r[1]), fmtNum(r[2]), fmtNum(r[3]), fmtMan(r[4]), fmtNum(r[5]), fmtNum(r[6]), fmtNum(r[7])];
+    const cells = [r[0], fmtMan(r[1]), fmtNum(r[2]), fmtNum(r[3]), fmtMan(r[4]), fmtNum(r[5]), fmtNum(r[6]), fmtPct(r[7])];
     h1 += `<tr class="${isAvg ? 'avgrow' : ''}">` +
           cells.map((c, i) => `<td class="${i === 0 ? 'lbl' : ''}">${esc(c)}</td>`).join('') +
           '</tr>';
