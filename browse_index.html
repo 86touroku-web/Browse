@@ -137,6 +137,9 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 .ttbl td{border:1px solid #ddd;text-align:center;font-weight:700;padding:6px 1px;font-size:13px;white-space:nowrap;color:#111;}
 .ttbl td.lbl{background:#f0f0f0;font-size:11px;font-weight:700;}
 .ttbl tr.avgrow td{background:#fff3cd;color:#d84315;}
+.ttbl td.chigh{background:#FFCDD0;}
+.ttbl td.clow{background:#B5FDFA;}
+.ttbl{border:1px solid #000;}
 .te{padding:22px;text-align:center;font-size:13px;color:#555;font-weight:600;}
 </style>
 </head>
@@ -828,25 +831,54 @@ function renderTrend() {
   const d = TREND_DATA;
   document.getElementById('tp-title').textContent = d.title || '推移分析';
 
+  // 月平均との比較で色クラスを返す（月列・月平均行・空欄は白）
+  function cellCls(val, avg, isAvg, isLbl) {
+    if (isAvg || isLbl) return '';
+    if (val === '' || val === null || val === undefined) return '';
+    if (avg === '' || avg === null || avg === undefined) return '';
+    const v = Number(val), a = Number(avg);
+    if (isNaN(v) || isNaN(a)) return '';
+    if (v > a) return 'chigh';
+    if (v < a) return 'clow';
+    return '';
+  }
+
   // 左テーブル（推移分析）：備考・最終更新の2列は升目には出さない
   const lh = ['月','純利益','落札数','出品数','購入額','購入数','在庫','利益率'];
+  const leftRows = d.left.rows || [];
+  // 月平均行（最終行）の生値を列ごとに取得
+  const lavg = leftRows.length ? leftRows[leftRows.length - 1] : [];
   let h1 = '<tr>' + lh.map(x => `<th>${esc(x)}</th>`).join('') + '</tr>';
-  (d.left.rows || []).forEach(r => {
+  leftRows.forEach(r => {
     const isAvg = r[0] === '月平均';
     const cells = [r[0], fmtMan(r[1]), fmtNum(r[2]), fmtNum(r[3]), fmtMan(r[4]), fmtNum(r[5]), fmtNum(r[6]), fmtPct(r[7])];
+    // 比較は生値で行う（表示整形前の数値）
+    const raws  = [r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7]];
+    const avgs  = [lavg[0], lavg[1], lavg[2], lavg[3], lavg[4], lavg[5], lavg[6], lavg[7]];
     h1 += `<tr class="${isAvg ? 'avgrow' : ''}">` +
-          cells.map((c, i) => `<td class="${i === 0 ? 'lbl' : ''}">${esc(c)}</td>`).join('') +
+          cells.map((c, i) => {
+            const isLbl = (i === 0);
+            const cls   = [isLbl ? 'lbl' : '', cellCls(raws[i], avgs[i], isAvg, isLbl)].filter(Boolean).join(' ');
+            return `<td class="${cls}">${esc(c)}</td>`;
+          }).join('') +
           '</tr>';
   });
   document.getElementById('ttbl1').innerHTML = h1;
 
   // 右テーブル（タイプ別落札数）：全列そのまま整数表示
   const rh = d.right.header || [];
+  const rightRows = d.right.rows || [];
+  // 月平均行（最終行）の生値を列ごとに取得
+  const ravg = rightRows.length ? rightRows[rightRows.length - 1] : [];
   let h2 = '<tr>' + rh.map(x => `<th>${esc(x)}</th>`).join('') + '</tr>';
-  (d.right.rows || []).forEach(r => {
+  rightRows.forEach(r => {
     const isAvg = r[0] === '月平均';
     h2 += `<tr class="${isAvg ? 'avgrow' : ''}">` +
-          r.map((c, i) => `<td class="${i === 0 ? 'lbl' : ''}">${esc(i === 0 ? c : fmtNum(c))}</td>`).join('') +
+          r.map((c, i) => {
+            const isLbl = (i === 0);
+            const cls   = [isLbl ? 'lbl' : '', cellCls(c, ravg[i], isAvg, isLbl)].filter(Boolean).join(' ');
+            return `<td class="${cls}">${esc(i === 0 ? c : fmtNum(c))}</td>`;
+          }).join('') +
           '</tr>';
   });
   document.getElementById('ttbl2').innerHTML = h2;
