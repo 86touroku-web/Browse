@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=0.95,maximum-scale=0.95,minimum-scale=0.95,user-scalable=no">
 <title>ルアー在庫回覧</title>
 <style>
 /* ═══════════════════════════════════════════
@@ -472,6 +472,7 @@ function render() {
                 <div class="ci-row"><span class="lb">備考</span><span class="nt">${esc(p.note)}</span></div>
                 <div class="ci-row"><span class="lb">状態</span><span class="cv">${condTxt}&nbsp;&nbsp;${priceTxt}&nbsp;&nbsp;${elapseTxt}</span></div>
               </div>
+              <a href="https://86touroku-web.github.io/lure-app/?bc=${encodeURIComponent(p.bc)}" style="display:block;margin:6px 0 2px;padding:6px;background:linear-gradient(90deg,#e91e8c,#f72386);color:#fff;border-radius:7px;text-align:center;font-size:11px;font-weight:800;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.2);">✏️ 編集</a>
             </div>
           </div>
         </div>
