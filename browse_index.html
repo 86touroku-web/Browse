@@ -16,7 +16,7 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 
 /* ヘッダー */
 #hdr{background:#1a5f4a;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;}
-#hdr-set{font-size:11px;padding:3px 12px;border-radius:13px;border:1px solid #000000;background:#fafb01;color:#000000;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;}
+#hdr-set{font-size:11px;padding:3px 7px;border-radius:13px;border:1px solid #000000;background:#fafb01;color:#000000;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;}
 #hdr-set.on{background:#fafb01;color:#000000;border:2px solid #000000;}
 #hdr-sub{position:absolute;left:50%;transform:translateX(-50%);color:#fff;font-size:15px;font-weight:700;white-space:nowrap;}
 #hdr-c{color:#a0d4c4;font-size:12px;font-weight:600;}
@@ -46,16 +46,16 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 
 /* 左：画像エリア（画像＋編集ボタンを縦に並べる） */
 .card-img-col{background:#ade3fa;padding:6px 6px 6px 7px;display:flex;flex-direction:column;align-items:stretch;flex-shrink:0;}
-.cimg{border-radius:5px;border:1px solid #585858;display:flex;align-items:center;justify-content:center;color:#888;font-size:9px;font-weight:600;width:68px;flex:1 1 0;min-height:0;height:0;object-fit:cover;flex-shrink:1;}
+.cimg{border-radius:5px;border:1px solid #585858;display:flex;align-items:center;justify-content:center;color:#888;font-size:9px;font-weight:600;width:68px;flex:1 1 auto;min-height:0;object-fit:cover;flex-shrink:1;}
 
 /* 編集ボタン（画像幅と同じ。色は変更無し。位置は「状態」行の下側に合わせる） */
 .edit-btn{display:flex;align-items:center;justify-content:center;width:68px;margin-top:4px;padding:4px 2px;background:linear-gradient(90deg,#e91e8c,#f72386);color:#fff;border-radius:7px;text-align:center;font-size:11px;font-weight:800;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.2);flex-shrink:0;white-space:nowrap;}
 
-/* ♡ボタン＋発送方法チップの縦並び列 */
+/* ♡ボタン専用列（発送方法チップは保管BC行に移動済み） */
 .ship-col{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;}
 
 /* 発送方法チップ（3種とも同一固定幅＝ネコポス基準） */
-.chip{width:56px;text-align:center;font-size:12px;font-weight:800;padding:4px 2px;border-radius:8px;border:1px solid #000000;white-space:nowrap;}
+.chip{width:56px;text-align:center;font-size:12px;font-weight:800;padding:4px 2px;border-radius:8px;border:1px solid #000000;white-space:nowrap;flex-shrink:0;}
 .chip-yu{background:#f80300;color:#FFFFFF;}
 .chip-neko{background:#22f75d;color:#000000;}
 .chip-takkyu{background:#FAFC00;color:#000000;}
@@ -78,6 +78,7 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 .card-bot{background:#dff4fd;padding:6px 8px 6px;flex:1;}
 .ci{font-size:11px;line-height:1.75;color:#111;}
 .ci-row{display:flex;gap:0;}
+.ci-row.ci-row-ship{align-items:center;justify-content:space-between;gap:6px;}
 .lb{color:#111;font-weight:700;text-align:right;min-width:46px;margin-right:5px;flex-shrink:0;}
 .cv{color:#111;font-weight:500;}
 .nt{color:#444;font-size:10px;font-weight:500;}
@@ -478,12 +479,11 @@ function render() {
               <div class="ship-col">
                 <span class="seq">${sq}/${its.length}</span>
                 <button class="fb ${fv?'on':''}" onclick="tgFav('${p.bc}')">${fv?'♥':'♡'}</button>
-                ${shipChip(p)}
               </div>
             </div>
             <div class="card-bot">
               <div class="ci">
-                <div class="ci-row"><span class="lb">保管BC</span><span class="cv">${esc(p.storBC)}</span></div>
+                <div class="ci-row ci-row-ship"><span class="lb">保管BC</span><span class="cv">${esc(p.storBC)}</span>${shipChip(p)}</div>
                 <div class="ci-row"><span class="lb">備考</span><span class="nt">${esc(p.note)}</span></div>
                 <div class="ci-row"><span class="lb">状態</span><span class="cv">${condTxt}&nbsp;&nbsp;${priceTxt}&nbsp;&nbsp;${elapseTxt}</span></div>
               </div>
@@ -497,13 +497,13 @@ function render() {
 }
 
 // 発送方法チップ（ゆうパケ／ネコポス／宅急便）を生成
-// ※バックエンド(GAS)側の商品データに p.shipMethod（または同等のフィールド）が
-//   含まれている前提です。未設定の場合は何も表示しません。
+// ※スプレッドシート側の実際の表記ゆれ（例：「ゆうパケットプラス （7cm）」
+//   「宅急便（EAZY）」）に対応するため、完全一致ではなく部分一致で判定する。
 function shipChip(p) {
   const v = p.shipMethod || p.ship || '';
-  if (v === 'ゆうパケ')  return `<span class="chip chip-yu">ゆうパケ</span>`;
-  if (v === 'ネコポス')  return `<span class="chip chip-neko">ネコポス</span>`;
-  if (v === '宅急便')    return `<span class="chip chip-takkyu">宅急便</span>`;
+  if (v.includes('ゆうパケ'))  return `<span class="chip chip-yu">ゆうパケ</span>`;
+  if (v.includes('ネコポス'))  return `<span class="chip chip-neko">ネコポス</span>`;
+  if (v.includes('宅急便'))    return `<span class="chip chip-takkyu">宅急便</span>`;
   return '';
 }
 
@@ -776,12 +776,11 @@ function renderFavList() {
               </div>
               <div class="ship-col">
                 <button class="fb on" onclick="removeFav('${p.bc}')">♥</button>
-                ${shipChip(p)}
               </div>
             </div>
             <div class="card-bot">
               <div class="ci">
-                <div class="ci-row"><span class="lb">保管BC</span><span class="cv">${esc(p.storBC)}</span></div>
+                <div class="ci-row ci-row-ship"><span class="lb">保管BC</span><span class="cv">${esc(p.storBC)}</span>${shipChip(p)}</div>
                 <div class="ci-row"><span class="lb">備考</span><span class="nt">${esc(p.note)}</span></div>
                 <div class="ci-row"><span class="lb">状態</span><span class="cv">${condTxt}&nbsp;&nbsp;${priceTxt}&nbsp;&nbsp;${elapseTxt}</span></div>
               </div>
