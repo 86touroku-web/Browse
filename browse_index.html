@@ -44,9 +44,8 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 /* カード全体レイアウト：左画像＋右テキストの横並び */
 .card-body{display:flex;gap:0;}
 
-/* 左：画像エリア（画像＋編集ボタンを縦に並べる） */
-.card-img-col{background:#ade3fa;padding:6px 6px 6px 7px;display:flex;flex-direction:column;align-items:stretch;flex-shrink:0;}
-.cimg{border-radius:5px;border:1px solid #585858;display:flex;align-items:center;justify-content:center;color:#888;font-size:9px;font-weight:600;width:68px;height:76px;flex:0 0 auto;object-fit:cover;}
+/* 画像エリア：CSS Gridで右側テキスト3行に高さを完全同期 */
+.cimg{border-radius:5px;border:1px solid #585858;display:flex;align-items:center;justify-content:center;color:#888;font-size:9px;font-weight:600;width:68px;flex:1 1 auto;min-height:0;object-fit:cover;}
 
 /* 編集ボタン（画像幅と同じ。色は変更無し。ステータスチップと同じ高さ感に統一） */
 .edit-btn{display:flex;align-items:center;justify-content:center;width:68px;margin-top:4px;padding:3px 2px;background:linear-gradient(90deg,#e91e8c,#f72386);color:#fff;border-radius:8px;text-align:center;font-size:11px;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.2);flex-shrink:0;white-space:nowrap;}
@@ -74,10 +73,11 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 .fb{width:30px;height:30px;border-radius:7px;border:2px solid #ec1c24;background:#fff;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ec1c24;}
 .fb.on{background:#fff;border-color:#ec1c24;color:#ec1c24;}
 
-/* 下段：画像＋テキスト情報を横並び */
-.card-bot{background:#dff4fd;padding:6px 8px 6px;flex:1;display:flex;gap:0;align-items:stretch;}
-.ci{font-size:11px;line-height:1.75;color:#111;flex:1;min-width:0;}
-.ci-row{display:flex;gap:0;min-height:20px;align-items:center;}
+/* 下段：画像＋テキスト情報。Gridで3行(保管BC/備考/状態)と画像高さを確実に同期 */
+.card-bot{background:#dff4fd;padding:6px 8px 6px;flex:1;display:grid;grid-template-columns:auto 1fr;grid-template-rows:repeat(3,auto);column-gap:0;}
+.card-img-col{grid-row:1 / span 3;grid-column:1;background:#ade3fa;padding:6px 6px 6px 7px;display:flex;flex-direction:column;align-items:stretch;}
+.ci{display:contents;}
+.ci-row{grid-column:2;display:flex;gap:0;align-items:center;font-size:11px;line-height:1.6;color:#111;min-height:22px;}
 .ci-row.ci-row-ship{align-items:center;justify-content:space-between;gap:6px;}
 .lb{color:#111;font-weight:700;text-align:right;min-width:46px;margin-right:5px;flex-shrink:0;}
 .cv{color:#111;font-weight:500;}
