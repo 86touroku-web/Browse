@@ -44,41 +44,35 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 /* カード全体レイアウト：左画像＋右テキストの横並び */
 .card-body{display:flex;gap:0;}
 
-/* 画像エリア：CSS Gridで右側テキスト3行に高さを完全同期 */
-.cimg{border-radius:5px;border:1px solid #585858;display:flex;align-items:center;justify-content:center;color:#888;font-size:9px;font-weight:600;width:68px;flex:1 1 auto;min-height:0;object-fit:cover;}
-
-/* 編集ボタン（画像幅と同じ。色は変更無し。ステータスチップと同じ高さ感に統一） */
-.edit-btn{display:flex;align-items:center;justify-content:center;width:68px;margin-top:4px;padding:3px 2px;background:linear-gradient(90deg,#e91e8c,#f72386);color:#fff;border-radius:8px;text-align:center;font-size:11px;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.2);flex-shrink:0;white-space:nowrap;}
-
-/* 連番＋♡ボタン専用列（横並び。発送方法チップは保管BC行に移動済み） */
-.ship-col{display:flex;flex-direction:row;align-items:center;gap:4px;flex-shrink:0;}
-
-/* 発送方法チップ（ステータスチップ.stと同サイズ感に統一。色は現状維持） */
-.chip{font-size:11px;padding:3px 0;border-radius:8px;font-weight:700;min-width:48px;text-align:center;white-space:nowrap;flex-shrink:0;border:none;}
-.chip-yu{background:#f80300;color:#FFFFFF;}
-.chip-neko{background:#22f75d;color:#000000;}
-.chip-takkyu{background:#FAFC00;color:#000000;}
+/* 左：画像エリア */
+.card-img-col{background:#ade3fa;padding:6px 6px 6px 7px;display:flex;align-items:center;flex-shrink:0;}
+/* 発送方法チップ（保管BCの行の右側に、対象商品の1個だけを表示） */
+.chip{width:56px;text-align:center;font-size:12px;font-weight:800;padding:4px 2px;border-radius:8px;border:1px solid #000000;white-space:nowrap;flex-shrink:0;}
+.chip-takkyu{background:#ff0f18;color:#ffffff;}
+.chip-yu{background:#ffff00;color:#000000;}
+.chip-neko{background:#09ff4e;color:#000000;}
+.ci-row-ship{align-items:center;justify-content:space-between;gap:6px;}
+.cimg{border-radius:5px;border:1px solid #585858;display:flex;align-items:center;justify-content:center;color:#888;font-size:9px;font-weight:600;width:68px;height:80px;object-fit:cover;flex-shrink:0;}
 
 /* 右：テキストエリア */
 .card-right{background:#dff4fd;flex:1;display:flex;flex-direction:column;min-width:0;}
 
-/* 上段：BC・ステータス・商品NO・連番・♡・発送チップ */
-.card-top{background:#ade3fa;padding:6px 8px 5px;display:flex;align-items:flex-start;gap:5px;}
-.r1{display:flex;align-items:center;gap:5px;flex:1;min-width:0;flex-wrap:wrap;}
+/* 上段：BC・ステータス・商品NO・連番・♡ */
+.card-top{background:#ade3fa;padding:6px 8px 5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.r1{display:flex;align-items:center;gap:5px;flex:1;min-width:0;}
 .bc{font-size:12px;color:#111;font-weight:700;white-space:nowrap;}
 .st{font-size:11px;padding:3px 0;border-radius:8px;font-weight:700;color:#fff;min-width:48px;text-align:center;flex-shrink:0;}
 .s0{background:#d07000;}.s1{background:#1a7a30;}.s2{background:#bb0000;}.s3{background:#0055bb;}.s4{background:#6600aa;}
 .cno{font-size:11px;color:#111;font-weight:600;white-space:nowrap;}
 .seq{font-size:10px;color:#333;font-weight:600;white-space:nowrap;flex-shrink:0;}
-.fb{width:30px;height:30px;border-radius:7px;border:2px solid #ec1c24;background:#fff;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ec1c24;}
+.fb{width:auto;height:auto;padding:3px 8px;border-radius:8px;border:2px solid #ec1c24;background:#fff;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ec1c24;line-height:1;}
+.edit-btn{display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;background:linear-gradient(90deg,#e91e8c,#f72386);color:#fff;border:1px solid #000000;border-radius:8px;text-align:center;font-size:11px;font-weight:800;text-decoration:none;flex-shrink:0;white-space:nowrap;line-height:1;}
 .fb.on{background:#fff;border-color:#ec1c24;color:#ec1c24;}
 
-/* 下段：画像＋テキスト情報。Gridで3行(保管BC/備考/状態)と画像高さを確実に同期 */
-.card-bot{background:#dff4fd;padding:6px 8px 6px;flex:1;display:grid;grid-template-columns:auto 1fr;grid-template-rows:repeat(3,auto);column-gap:0;}
-.card-img-col{grid-row:1 / span 3;grid-column:1;background:#ade3fa;padding:6px 6px 6px 7px;display:flex;flex-direction:column;align-items:stretch;}
-.ci{display:contents;}
-.ci-row{grid-column:2;display:flex;gap:0;align-items:center;font-size:11px;line-height:1.6;color:#111;min-height:22px;}
-.ci-row.ci-row-ship{align-items:center;justify-content:space-between;gap:6px;}
+/* 下段：テキスト情報 */
+.card-bot{background:#dff4fd;padding:6px 8px 7px;flex:1;}
+.ci{font-size:11px;line-height:1.75;color:#111;}
+.ci-row{display:flex;gap:0;}
 .lb{color:#111;font-weight:700;text-align:right;min-width:46px;margin-right:5px;flex-shrink:0;}
 .cv{color:#111;font-weight:500;}
 .nt{color:#444;font-size:10px;font-weight:500;}
@@ -405,6 +399,17 @@ function pbadge(p) {
   return `<span class="${cl}">${p.profitName.toFixed(1)}%${ar} vs 平均${p.profitType.toFixed(1)}%</span>`;
 }
 
+// 発送方法チップ（対象商品の発送方法を1個だけ判定して返す）
+// ※スプレッドシート側の表記ゆれ（例：「ゆうパケットプラス （7cm）」「宅急便（EAZY）」）に
+//   対応するため、完全一致ではなく部分一致で判定する。
+function shipChip(p) {
+  const v = p.ship || '';
+  if (v.includes('ゆうパケ'))  return `<span class="chip chip-yu">ゆうパケ</span>`;
+  if (v.includes('ネコポス'))  return `<span class="chip chip-neko">ネコポス</span>`;
+  if (v.includes('宅急便'))    return `<span class="chip chip-takkyu">宅急便</span>`;
+  return '';
+}
+
 // ─────────────────────────────────────────────────────
 //  ヘッダー更新
 // ─────────────────────────────────────────────────────
@@ -468,6 +473,7 @@ function render() {
       const elapseTxt = p.elapsedMonths !== null ? `${p.elapsedMonths}ヶ月経過` : '';
       h += `<div class="card">
         <div class="card-body">
+          <div class="card-img-col">${img}</div>
           <div class="card-right">
             <div class="card-top">
               <div class="r1">
@@ -475,13 +481,11 @@ function render() {
                 <span class="st ${SC[p.status]||'s3'}">${esc(p.status)}</span>
                 <span class="cno">商品NO ${esc(String(p.no))}</span>
               </div>
-              <div class="ship-col">
-                <span class="seq">${sq}/${its.length}</span>
-                <button class="fb ${fv?'on':''}" onclick="tgFav('${p.bc}')">${fv?'♥':'♡'}</button>
-              </div>
+              <span class="seq">${sq}/${its.length}</span>
+              <a href="https://86touroku-web.github.io/lure-app/?bc=${encodeURIComponent(p.bc)}" class="edit-btn">✏️ 編集</a>
+              <button class="fb ${fv?'on':''}" onclick="tgFav('${p.bc}')">${fv?'♥':'♡'}</button>
             </div>
             <div class="card-bot">
-              <div class="card-img-col">${img}<a href="https://86touroku-web.github.io/lure-app/?bc=${encodeURIComponent(p.bc)}" class="edit-btn">✏️ 編集</a></div>
               <div class="ci">
                 <div class="ci-row ci-row-ship"><span class="lb">保管BC</span><span class="cv">${esc(p.storBC)}</span>${shipChip(p)}</div>
                 <div class="ci-row"><span class="lb">備考</span><span class="nt">${esc(p.note)}</span></div>
@@ -494,17 +498,6 @@ function render() {
     });
   });
   el.innerHTML = h;
-}
-
-// 発送方法チップ（ゆうパケ／ネコポス／宅急便）を生成
-// ※スプレッドシート側の実際の表記ゆれ（例：「ゆうパケットプラス （7cm）」
-//   「宅急便（EAZY）」）に対応するため、完全一致ではなく部分一致で判定する。
-function shipChip(p) {
-  const v = p.shipMethod || p.ship || '';
-  if (v.includes('ゆうパケ'))  return `<span class="chip chip-yu">ゆうパケ</span>`;
-  if (v.includes('ネコポス'))  return `<span class="chip chip-neko">ネコポス</span>`;
-  if (v.includes('宅急便'))    return `<span class="chip chip-takkyu">宅急便</span>`;
-  return '';
 }
 
 // XSS対策
@@ -766,6 +759,7 @@ function renderFavList() {
       const elapseTxt = p.elapsedMonths !== null ? `${p.elapsedMonths}ヶ月経過` : '';
       h += `<div class="card">
         <div class="card-body">
+          <div class="card-img-col">${img}</div>
           <div class="card-right">
             <div class="card-top">
               <div class="r1">
@@ -773,12 +767,9 @@ function renderFavList() {
                 <span class="st ${SC[p.status]||'s3'}">${esc(p.status)}</span>
                 <span class="cno">商品NO ${esc(String(p.no))}</span>
               </div>
-              <div class="ship-col">
-                <button class="fb on" onclick="removeFav('${p.bc}')">♥</button>
-              </div>
+              <button class="fb on" onclick="removeFav('${p.bc}')">♥</button>
             </div>
             <div class="card-bot">
-              <div class="card-img-col">${img}<a href="https://86touroku-web.github.io/lure-app/?bc=${encodeURIComponent(p.bc)}" class="edit-btn">✏️ 編集</a></div>
               <div class="ci">
                 <div class="ci-row ci-row-ship"><span class="lb">保管BC</span><span class="cv">${esc(p.storBC)}</span>${shipChip(p)}</div>
                 <div class="ci-row"><span class="lb">備考</span><span class="nt">${esc(p.note)}</span></div>
