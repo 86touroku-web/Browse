@@ -16,6 +16,8 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 
 /* ヘッダー */
 #hdr{background:#1a5f4a;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;}
+#hdr-l{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+#hdr-sort-btn{font-size:11px;padding:3px 7px;border-radius:13px;border:1px solid #000000;background:#33ff6d;color:#000000;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;white-space:nowrap;}
 #hdr-set{font-size:11px;padding:3px 7px;border-radius:13px;border:1px solid #000000;background:#fafb01;color:#000000;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;}
 #hdr-set.on{background:#fafb01;color:#000000;border:2px solid #000000;}
 #hdr-sub{position:absolute;left:50%;transform:translateX(-50%);color:#fff;font-size:15px;font-weight:700;white-space:nowrap;}
@@ -155,7 +157,10 @@ body{background:#f0f4f3;font-family:'Hiragino Sans','Noto Sans JP',sans-serif;ov
 <div id="wrap">
 <div id="app">
   <div id="hdr">
-    <button id="hdr-set" onclick="toggleSet()">セット</button>
+    <div id="hdr-l">
+      <button id="hdr-sort-btn" onclick="openP('sort')">並び替え</button>
+      <button id="hdr-set" onclick="toggleSet()">セット</button>
+    </div>
     <span id="hdr-sub">ルアー在庫回覧</span>
     <span id="hdr-c">読込中…</span>
   </div>
@@ -228,7 +233,7 @@ let ALL_ITEMS   = [];   // 全商品データ（起動時1回だけ取得）
 let CAT_TYPE    = {};   // カテゴリー→タイプマップ
 let MAKERS      = [];   // メーカー一覧
 // F: maker/status/date は複数選択(Set)。category/typeは単一選択(階層のため)。setは真偽値。
-let F = {maker:new Set(), category:null, type:null, date:new Set(), status:new Set(), set:false};
+let F = {maker:new Set(), category:null, type:null, date:new Set(), status:new Set(), set:false, sort:null};
 let favs        = new Set();
 let curP        = null;
 let selCat      = null;
@@ -412,6 +417,49 @@ function shipChip(p) {
 }
 
 // ─────────────────────────────────────────────────────
+//  並び替え：商品名グループ内カードの順序を決める比較関数
+//  ・F.sortが未選択の場合のデフォルトは「ステータス順（出品→在庫）」
+// ─────────────────────────────────────────────────────
+const STATUS_ORDER_OUT   = ['出品','出タイ待','No有','保品','検品済','在庫'];
+const STATUS_ORDER_STOCK = ['在庫','検品済','保品','No有','出タイ待','出品'];
+const COND_ORDER_S = ['S','A','B','C','D','E'];
+const COND_ORDER_D = ['E','D','C','B','A','S'];
+
+function orderIndex(order, val) {
+  const i = order.indexOf(val);
+  return i === -1 ? order.length : i;  // 対応表にない・空欄は最後尾
+}
+
+function compareForSort(a, b) {
+  const s = F.sort;
+  if (!s) {
+    // デフォルト：ステータス順（出品→在庫）
+    return orderIndex(STATUS_ORDER_OUT, a.status) - orderIndex(STATUS_ORDER_OUT, b.status);
+  }
+  if (s.key === 'buyDate') {
+    // buyDateは 'yyyy/mm/dd' 形式（ゼロ埋め済み）のため文字列比較で日付順になる。空欄は最後尾
+    const av = a.buyDate || '', bv = b.buyDate || '';
+    if (!av && !bv) return 0;
+    if (!av) return 1;
+    if (!bv) return -1;
+    return s.dir === 'new' ? bv.localeCompare(av) : av.localeCompare(bv);
+  }
+  if (s.key === 'status') {
+    const order = s.dir === 'out' ? STATUS_ORDER_OUT : STATUS_ORDER_STOCK;
+    return orderIndex(order, a.status) - orderIndex(order, b.status);
+  }
+  if (s.key === 'price') {
+    const av = Number(a.buyPrice || 0), bv = Number(b.buyPrice || 0);
+    return s.dir === 'high' ? (bv - av) : (av - bv);
+  }
+  if (s.key === 'cond') {
+    const order = s.dir === 'S' ? COND_ORDER_S : COND_ORDER_D;
+    return orderIndex(order, a.cond) - orderIndex(order, b.cond);
+  }
+  return 0;
+}
+
+// ─────────────────────────────────────────────────────
 //  ヘッダー更新
 // ─────────────────────────────────────────────────────
 function updHeader() {
@@ -460,6 +508,7 @@ function render() {
       <span class="gn">${esc(nm)}</span>
       <div class="gr">${badge}<span class="gc">${its.length}件</span></div>
     </div>`;
+    its.sort(compareForSort);  // 商品名グループ内のみ並び替え（グループ自体の順序は現状維持）
     let sq = 0;  // グループ単位でリセット
     its.forEach(p => {
       sq++;
@@ -615,6 +664,42 @@ function updPanelBtn() {
 }
 
 // ─────────────────────────────────────────────────────
+//  並び替えパネル（商品名グループ内のカード順のみに適用）
+//  ・単一選択（1行のみON）／タップで即時反映／再タップで解除
+//  ・チェックボックスは使わず、選択中は.pr2.slの配色のみで表現
+// ─────────────────────────────────────────────────────
+const SORT_ROWS = [
+  { key:'buyDate', dir:'new',   label:'購入日　【新しい】' },
+  { key:'buyDate', dir:'old',   label:'購入日　【古い】' },
+  { key:'status',  dir:'out',   label:'ステータス　【出品】' },
+  { key:'status',  dir:'stock', label:'ステータス　【在庫】' },
+  { key:'price',   dir:'high',  label:'購入金額　【高い】' },
+  { key:'price',   dir:'low',   label:'購入金額　【安い】' },
+  { key:'cond',    dir:'S',     label:'状態　【S】' },
+  { key:'cond',    dir:'D',     label:'状態　【D】' },
+];
+
+function buildSortPanel() {
+  document.getElementById('pt').textContent = '並び替え';
+  let h = '';
+  SORT_ROWS.forEach(r => {
+    const cur = F.sort && F.sort.key === r.key && F.sort.dir === r.dir;
+    h += `<div class="pr2 ${cur?'sl':''}" onclick="selectSort('${r.key}','${r.dir}')"><span class="pln">${esc(r.label)}</span></div>`;
+  });
+  document.getElementById('pc').innerHTML = h;
+}
+
+function selectSort(key, dir) {
+  if (F.sort && F.sort.key === key && F.sort.dir === dir) {
+    F.sort = null;  // 同じ項目を再タップ→解除
+  } else {
+    F.sort = { key, dir };
+  }
+  buildSortPanel();  // 選択ハイライトを更新
+  render();          // 一覧へ即時反映
+}
+
+// ─────────────────────────────────────────────────────
 //  パネル開閉
 // ─────────────────────────────────────────────────────
 function openP(n) {
@@ -626,12 +711,22 @@ function openP(n) {
   }
   curP = n;
   if (n === 'category') {
+    document.querySelector('.pf').style.display = '';
     buildCategoryPanel(true);
     document.getElementById('pn').classList.add('op');
     document.getElementById('ov').classList.add('op');
     return;
   }
+  if (n === 'sort') {
+    // 並び替えパネル：タップ即反映のため「表示」ボタンは不要 → 非表示にする
+    document.querySelector('.pf').style.display = 'none';
+    buildSortPanel();
+    document.getElementById('pn').classList.add('op');
+    document.getElementById('ov').classList.add('op');
+    return;
+  }
   // メーカー・購入日・ステータス＝複数選択パネル
+  document.querySelector('.pf').style.display = '';
   openMultiPanel(n);
 }
 
@@ -697,6 +792,7 @@ function commitCurPanel() {
   } else if (curP === 'maker' || curP === 'date' || curP === 'status') {
     F[curP] = new Set(selP);
   }
+  // curP === 'sort' の場合は selectSort() 内で即時に F.sort へ反映済みのため何もしない
 }
 
 document.getElementById('pok').addEventListener('click', () => {
@@ -709,7 +805,7 @@ function closeP() {
   document.getElementById('ov').classList.remove('op');
 }
 function clrAll() {
-  F = {maker:new Set(), category:null, type:null, date:new Set(), status:new Set(), set:false};
+  F = {maker:new Set(), category:null, type:null, date:new Set(), status:new Set(), set:false, sort:null};
   closeP();    // 絞り込みパネルが開いていれば閉じる
   closeFav();  // お気に入りポップアップが開いていれば閉じる
   closeTrend(); // 推移分析ポップアップが開いていれば閉じる
